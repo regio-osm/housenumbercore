@@ -253,6 +253,7 @@ public class Address {
 	 */
 	public void setLocation(Double lon, Double lat) {
 		this.lon = lon;
+		this.lat = lat;
 	}
 
 	/**

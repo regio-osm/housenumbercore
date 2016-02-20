@@ -192,8 +192,8 @@ public class import_stadtstrassenGENERICGml {
 				Node actaddress = (Node) addresses.item(addressindex);
 		    	//System.out.println(" address # " + addressindex + "  [" + actaddress.getNodeName() + "] === " + actaddress.getTextContent() + "===");
 
-				actaddress.getParentNode().removeChild(actaddress);
-
+				// following line was active, but no clue, why and for what
+				//actaddress.getParentNode().removeChild(actaddress);
 				
 		    	if(!MunicipalitynameXpathRelpos.isEmpty()) {
 			    	actxpathstring = MunicipalitynameXpathRelpos;
@@ -631,7 +631,14 @@ public class import_stadtstrassenGENERICGml {
 				if(headeraktiv) {
 					String headerEndString = "<" + gmlFeaturemember;
 					if(aktText.indexOf(headerEndString) != -1) {
-						readerHeader.append(aktText.substring(0,aktText.indexOf(headerEndString)));
+						Integer startpos = 0;
+						if(readerHeader.length() == 0) {
+							Integer codezeichen = aktText.codePointAt(0);
+							if(codezeichen == 65279)	// found BOM, ignore first character in file
+								startpos = 1;
+							System.out.println("Codezeichen: " + codezeichen);
+						}
+						readerHeader.append(aktText.substring(startpos,aktText.indexOf(headerEndString)));
 						headeraktiv = false;
 						aktText = aktText.substring(aktText.indexOf(headerEndString));
 					} else {
@@ -705,17 +712,59 @@ if(endpos < startpos)
 		java.util.Date looptime_debug_starttime = null;
 		java.util.Date looptime_debug_endtime = null;
 
-		String filecontent = "";
-
-		String fieldSeparator = ";";
-
-//String parameterLand = "België";
-//String parameterLand = "Poland";
-String parameterLand = "Italia";
+		String parameterLand = "Bundesrepublik Deutschland";
 		String parameterStadt = "";
 		String parameterAgs = "";
 		String parameterImportdateiname = "";
 		String parameterAktiveStadtteileYesno = "n";
+	
+		if ((args.length >= 1) && (args[0].equals("-h"))) {
+			System.out.println("-country Name of Country, as store on evaluation Website or in Admin Polygon in OSM. It not used, 'Bundesrepublik Deutschland' will be used");
+			System.out.println("-municipality Name of Municipality");
+			System.out.println("-municipalityref Municipality Reference-Id for unique Identification of the municipality in OSM. In Germany value of de:amtlicher_gemeindeschluessel");
+			System.out.println("-file importfilename");
+			System.out.println("");
+			System.out.println("Importfile must be in gml XML-Format. Direct support only for Belgium, Italy and Poland Lists. For other countries, source code musst be changed first.");
+			return;
+		}
+
+		for (int lfdnr = 0; lfdnr < args.length; lfdnr++) {
+			System.out.println("args[" + lfdnr + "] ===" + args[lfdnr] + "===");
+		}
+
+		if (args.length >= 1) {
+			int argsOkCount = 0;
+			for (int argsi = 0; argsi < args.length; argsi += 2) {
+				System.out.print(" args pair analysing #: " + argsi + "  ===" + args[argsi] + "===");
+				if (args.length > (argsi + 1)) {
+					System.out.print("  args #+1: " + (argsi + 1) + "   ===" + args[argsi + 1] + "===");
+				}
+				System.out.println("");
+
+				if (args[argsi].equals("-country")) {
+					parameterLand = args[argsi + 1];
+					argsOkCount += 2;
+				} else if (args[argsi].equals("-municipality")) {
+					parameterStadt = args[argsi + 1];
+					argsOkCount += 2;
+				} else if (args[argsi].equals("-municipalityref")) {
+					parameterAgs = args[argsi + 1];
+					argsOkCount += 2;
+				} else if (args[argsi].equals("-file")) {
+					parameterImportdateiname = args[argsi + 1];
+					argsOkCount += 2;
+				} else {
+					System.out.println("ERROR: unknown program parameter ===" + args[argsi] + "===");
+					return;
+				}
+			}
+			if (argsOkCount != args.length) {
+				System.out.println("ERROR: not all programm parameters were valid, STOP");
+				return;
+			}
+		}
+
+		String filecontent = "";
 
 		if(parameterLand.equals("Poland")) {
 						gmlFeaturecollection = "gml:FeatureCollection";
@@ -733,18 +782,18 @@ String parameterLand = "Italia";
 			HousenumberobjectidXpathRelpos = "idIIP/BT_Identyfikator/lokalnyId";
 			statusXpathRelpos = "status";
 		} else if(parameterLand.equals("België")) {
-			gmlFeaturecollection = "gml:FeatureCollection";
-			gmlFeaturemembers = "gml:FeatureMembers";
-			gmlFeaturemember = "gml:FeatureMember";
-			AddressobjectnameXpathAbspos = "agiv:CrabAdr";
-			PointXpathRelpos = "gml:pointProperty";
-			MunicipalitynameXpathRelpos = "agiv:GEMEENTE";
+			gmlFeaturecollection = "agiv:FeatureCollection";
+			gmlFeaturemembers = "";
+			gmlFeaturemember = "gml:featureMember";
+			AddressobjectnameXpathAbspos = "/FeatureCollection/featureMember/CrabAdr";
+			PointXpathRelpos = "pointProperty/Point";
+			MunicipalitynameXpathRelpos = "GEMEENTE";
 			MunicipalityidXpathRelpos = "";
-			PostcodeXpathRelpos = "agiv:POSTCODE";
-			StreetnameXpathRelpos = "agiv:STRAATNM";
-			HousenumberXpathRelpos = "agiv:HUISNR";
+			PostcodeXpathRelpos = "POSTCODE";
+			StreetnameXpathRelpos = "STRAATNM";
+			HousenumberXpathRelpos = "HUISNR";
 			HousenumberadditionXpathRelpos = "";
-			HousenumberobjectidXpathRelpos = "agiv:ID";
+			HousenumberobjectidXpathRelpos = "ID";
 			statusXpathRelpos = "";
 		} else if(parameterLand.equals("Italia")) {
 			if(1==0) {		// Trento, Italia
@@ -854,52 +903,6 @@ statusXpathRelpos = "";
 			streetnamecorrectionmap.put("^Fraktion +", "Fraktion ");
 			streetnamecorrectionmap.put("Handwerkerstr\\.N", "Handwerkerstraße N");
 			streetnamecorrectionmap.put("Handwerkerstr\\.S", "Handwerkerstraße S");
-		}
-	
-		if ((args.length >= 1) && (args[0].equals("-h"))) {
-			System.out.println("-country Name of Country, as store on evaluation Website or in Admin Polygon in OSM. It not used, 'Bundesrepublik Deutschland' will be used");
-			System.out.println("-municipality Name of Municipality");
-			System.out.println("-municipalityref Municipality Reference-Id for unique Identification of the municipality in OSM. In Germany value of de:amtlicher_gemeindeschluessel");
-			System.out.println("-file importfilename");
-			System.out.println("");
-			System.out.println("Importfile must be in gml XML-Format. Direct support only for Belgium, Italy and Poland Lists. For other countries, source code musst be changed first.");
-			return;
-		}
-
-		for (int lfdnr = 0; lfdnr < args.length; lfdnr++) {
-			System.out.println("args[" + lfdnr + "] ===" + args[lfdnr] + "===");
-		}
-
-		if (args.length >= 1) {
-			int argsOkCount = 0;
-			for (int argsi = 0; argsi < args.length; argsi += 2) {
-				System.out.print(" args pair analysing #: " + argsi + "  ===" + args[argsi] + "===");
-				if (args.length > (argsi + 1)) {
-					System.out.print("  args #+1: " + (argsi + 1) + "   ===" + args[argsi + 1] + "===");
-				}
-				System.out.println("");
-
-				if (args[argsi].equals("-country")) {
-					parameterLand = args[argsi + 1];
-					argsOkCount += 2;
-				} else if (args[argsi].equals("-municipality")) {
-					parameterStadt = args[argsi + 1];
-					argsOkCount += 2;
-				} else if (args[argsi].equals("-municipalityref")) {
-					parameterAgs = args[argsi + 1];
-					argsOkCount += 2;
-				} else if (args[argsi].equals("-file")) {
-					parameterImportdateiname = args[argsi + 1];
-					argsOkCount += 2;
-				} else {
-					System.out.println("ERROR: unknown program parameter ===" + args[argsi] + "===");
-					return;
-				}
-			}
-			if (argsOkCount != args.length) {
-				System.out.println("ERROR: not all programm parameters were valid, STOP");
-				return;
-			}
 		}
 
 
