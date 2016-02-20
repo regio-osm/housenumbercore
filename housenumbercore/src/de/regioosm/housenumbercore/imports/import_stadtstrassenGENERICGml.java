@@ -709,7 +709,7 @@ if(endpos < startpos)
 
 		String fieldSeparator = ";";
 
-//String parameterLand = "Belgie";
+//String parameterLand = "België";
 //String parameterLand = "Poland";
 String parameterLand = "Italia";
 		String parameterStadt = "";
@@ -732,7 +732,7 @@ String parameterLand = "Italia";
 						HousenumberadditionXpathRelpos = "";
 			HousenumberobjectidXpathRelpos = "idIIP/BT_Identyfikator/lokalnyId";
 			statusXpathRelpos = "status";
-		} else if(parameterLand.equals("Belgie")) {
+		} else if(parameterLand.equals("België")) {
 			gmlFeaturecollection = "gml:FeatureCollection";
 			gmlFeaturemembers = "gml:FeatureMembers";
 			gmlFeaturemember = "gml:FeatureMember";
@@ -857,13 +857,12 @@ statusXpathRelpos = "";
 		}
 	
 		if ((args.length >= 1) && (args[0].equals("-h"))) {
-			System.out.println("-land 'Bundesrepublik Deutschland' wenn fehlend");
-			System.out.println("-stadt Stadtname");
-			System.out.println("-ags 8stelligeramtlicherGemeindeschlüssel z.B. 09761000");
-			System.out.println("-datei importdateiname");
-			System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
+			System.out.println("-country Name of Country, as store on evaluation Website or in Admin Polygon in OSM. It not used, 'Bundesrepublik Deutschland' will be used");
+			System.out.println("-municipality Name of Municipality");
+			System.out.println("-municipalityref Municipality Reference-Id for unique Identification of the municipality in OSM. In Germany value of de:amtlicher_gemeindeschluessel");
+			System.out.println("-file importfilename");
 			System.out.println("");
-			System.out.println("Importfile must be in gml XML-Format and fix fme:.. Tags. It fits probably only for Hamburg housenumerlist");
+			System.out.println("Importfile must be in gml XML-Format. Direct support only for Belgium, Italy and Poland Lists. For other countries, source code musst be changed first.");
 			return;
 		}
 
@@ -880,21 +879,21 @@ statusXpathRelpos = "";
 				}
 				System.out.println("");
 
-				if (args[argsi].equals("-land")) {
+				if (args[argsi].equals("-country")) {
 					parameterLand = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-stadt")) {
+				} else if (args[argsi].equals("-municipality")) {
 					parameterStadt = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-ags")) {
+				} else if (args[argsi].equals("-municipalityref")) {
 					parameterAgs = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-datei")) {
+				} else if (args[argsi].equals("-file")) {
 					parameterImportdateiname = args[argsi + 1];
 					argsOkCount += 2;
+				} else {
+					System.out.println("ERROR: unknown program parameter ===" + args[argsi] + "===");
+					return;
 				}
 			}
 			if (argsOkCount != args.length) {
@@ -948,8 +947,8 @@ String bezirk = "";
 				output_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".txt";
 				osmoutput_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".osm";
 				logs_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".log";
-			} else if(parameterLand.equals("Belgie")) {
-				dateipfadname = "/home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Belgien/CRAB_Adressenlijst/GML/CrabAdr_ohneBOM.gml";
+			} else if(parameterLand.equals("België")) {
+				dateipfadname = "/home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Belgien/Vlandern-Teil---CRAB/2016-02-20/CRAB_Adressenlijst/GML/CrabAdr.gml";
 				output_dateipfadname = dateipfadname + ".txt";
 				osmoutput_dateipfadname = dateipfadname + ".osm";
 				logs_dateipfadname = dateipfadname + ".log";
