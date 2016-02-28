@@ -32,6 +32,7 @@ CREATE TABLE land
   land                     text           NOT NULL,
   countrycode              text, 
   gemeindeschluessel_key   text,                        -- fuer Gemeinden außerhalb Deutschland der OSM-Key, in dem der gemeindeschluessel Wert steht. Leer = 'de:amtlicher_gemeindeschluessel'
+  boundary_polygon			geometry,
   CONSTRAINT pk_land PRIMARY KEY (id)
 )
 WITH (OIDS=FALSE);
