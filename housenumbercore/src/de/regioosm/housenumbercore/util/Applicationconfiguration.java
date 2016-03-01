@@ -35,7 +35,7 @@ public class Applicationconfiguration {
 	
 	public Applicationconfiguration () {
 			// get some configuration infos
-		String configuration_filename = "hausnummern.properties";		
+		String configuration_filename = "housenumbercore.properties";		
 
 		final String dir = System.getProperty("user.dir");
 		System.out.println("current dir = " + dir);
