@@ -521,8 +521,8 @@ public class TheoreticalHousenumbers {
 	
 	
 					//production String create_multipolygon_sql = "SELECT ST_Union('"+complete_polygon+"','"+actual_polygon_part+"') as unionpolygon, ";
-					String create_multipolygon_sql = "SELECT ST_Union(?, ?) as unionpolygon, ";
-					create_multipolygon_sql += "ST_AsText(ST_Union(?, ?)) as justfordebug_unionpolygon_astext;";
+					String create_multipolygon_sql = "SELECT ST_Union(?::geometry, ?::geometry) as unionpolygon, ";
+					create_multipolygon_sql += "ST_AsText(ST_Union(?::geometry, ?::geometry)) as justfordebug_unionpolygon_astext;";
 					System.out.println("create_multipolygon_sql==="+create_multipolygon_sql+"===");
 					try {
 						PreparedStatement stmt_create_multipolygon = con_hausnummern.prepareStatement(create_multipolygon_sql);
