@@ -27,6 +27,8 @@ public class Address {
 	private String	country = "";
 	private String	municipality = "";
 	private String	municipalityId = "";
+	private String	subArea = "";
+	private String	subId = "";
 	private String	street = "";
 	private String	place = "";					// in cases, the housenumber belongs not to a streets, but instead to a place, like in hamlets and very small villages
 	private String	housenumber = "";
@@ -45,6 +47,8 @@ public class Address {
 		setCountry("");
 		setMunicipality("");
 		setMunicipalityId("");
+		setSubArea("");
+		setSubId("");
 		setStreet("");
 		setPlace("");
 		setHousenumber("");
@@ -75,6 +79,11 @@ public class Address {
     		output += "<tag k='addr:city' v='" + getMunicipality().replace("'", "&quot;") + "' />\n";
     	if(! getMunicipality().equals("") && ! getMunicipalityId().equals(""))
     		output += "<tag k='temp_cityid' v='" + getMunicipalityId().replace("'", "&quot;") + "' />\n";
+    	if(! getSubArea().equals(""))
+    		output += "<tag k='temp_subarea' v='" + getSubArea().replace("'", "&quot;") + "' />\n";
+    	if(! getSubArea().equals("") && ! getSubId().equals(""))
+    		output += "<tag k='temp_subid' v='" + getSubId().replace("'", "&quot;") + "' />\n";
+    	
     	for (Map.Entry<String,String> entry : keyvalues.entrySet()) {
 			String key = entry.getKey();
 			String value = entry.getValue();
@@ -94,8 +103,8 @@ public class Address {
     		output += getStreet();
     	else if(!getPlace().equals(""))
     		output += getPlace();
-    	output += "\t" + getHousenumber() + "\t"
-    		+	getHousenumberaddition() + "\t" + getPostcode() + "\t" + getMunicipalityId() + "\t" + getMunicipality() + "\t" + "EPSG:" + getLonlat_srid() + "\t" + getLon() + "\t" + lat + "\n";
+    	output += "\t" + getHousenumber() + "\t" +	getHousenumberaddition() + "\t" + getPostcode() + "\t" + getMunicipalityId() + "\t" + getMunicipality()
+    		+ "\t" + getSubArea() + "\t" + getSubId() + "\t" + "EPSG:" + getLonlat_srid() + "\t" + getLon() + "\t" + lat + "\n";
         return output;
     }
 
@@ -118,6 +127,20 @@ public class Address {
 	 */
 	public String getMunicipalityId() {
 		return municipalityId;
+	}
+
+	/**
+	 * @return the municipality
+	 */
+	public String getSubArea() {
+		return subArea;
+	}
+
+	/**
+	 * @return the municipalityId
+	 */
+	public String getSubId() {
+		return subId;
 	}
 
 	/**
@@ -218,6 +241,20 @@ public class Address {
 	 */
 	public void setMunicipalityId(String municipalityId) {
 		this.municipalityId = municipalityId;
+	}
+
+	/**
+	 * @return the municipality
+	 */
+	public void setSubArea(String subarea) {
+		this.subArea = subarea;
+	}
+
+	/**
+	 * @return the municipalityId
+	 */
+	public void setSubId(String subid) {
+		this.subId = subid;
 	}
 
 	/**

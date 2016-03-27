@@ -3,10 +3,12 @@ package de.regioosm.housenumbercore.imports;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -39,6 +41,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import de.regioosm.housenumbercore.Address;
+import de.regioosm.housenumbercore.Reference;
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.ImportHausnummerliste;
 
@@ -56,10 +59,17 @@ public class import_stadtstrassenGENERICGml {
 	static String gmlFeaturecollection = "";
 	static String gmlFeaturemembers = "";
 	static String gmlFeaturemember = "";
+	static String gmlReferenceobject = "";
     static String AddressobjectnameXpathAbspos = "";
     static String PointXpathRelpos = "";
     static String MunicipalitynameXpathRelpos = "";
     static String MunicipalityidXpathRelpos = "";
+    static String MunicipalityfilereferenceXpathRelpos = "";
+	static String MunicipalityfilereferenceSolveXpathAbspos = "";
+	static String MunicipalityfilereferenceSolveNameXpathRelpos = "";
+	static String MunicipalityfilereferenceSolveIdXpathRelpos = "";
+    static String SubareanameXpathRelpos = "";
+    static String SubidXpathRelpos = "";
     static String PostcodeXpathRelpos = "";
     static String PlacenameXpathRelpos = "";
     static String StreetnameXpathRelpos = "";
@@ -108,6 +118,8 @@ public class import_stadtstrassenGENERICGml {
 	 */
 	private static final int FILECOLUMNMINLENGTH = 9; 
 
+	static HashMap<String, Reference> references = new HashMap<String, Reference>();
+	
 		// store one time evaluated id of every street to prevent uneccesary DB read request
 	private static TreeMap<String,Long> strasseid_array = new TreeMap<String,Long>();
 
@@ -119,8 +131,6 @@ public class import_stadtstrassenGENERICGml {
 		Pattern wildcardPattern = Pattern.compile("([A-ZÄÖÜĂÂÎŞŢÉËÚ])([A-ZÄÖÜßĂÂÎŞŢÉËÚ]*)");				// A to Z and all 5 special romania chars http://de.wikipedia.org/wiki/Rum%C3%A4nisches_Alphabet#Alphabet_und_Aussprache
 		Matcher match = wildcardPattern.matcher(street);
 		StringBuffer sb = new StringBuffer();
-		StringBuffer hnrstartsuffix = new StringBuffer();
-		StringBuffer rest = new StringBuffer();
 		boolean matchFind = match.find();
 		String foundstring = "";
 		boolean matchFixToLowerCase = false;
@@ -150,26 +160,132 @@ public class import_stadtstrassenGENERICGml {
 		return sb.toString();
 	}
 
-	
-	// return object   Address
-	private static Integer analyseAddressesNEWMODE(Document xmldocument) {
+
+	private static Integer analyseMunicipalityReference(Document xmldocument) {
+
+		Date method_starttime = new Date();
+		Date method_endtime = new Date();
+		Date evaluate_starttime = new Date();
+		Date evaluate_endtime = new Date();
+		Long xpathms = 0L;
+    	Long bufferoutputms = 0L;
+		
+		evaluate_starttime = new Date();
+		XPath xpath = XPathFactory.newInstance().newXPath();
+		XPathExpression referencesxpath;
+
+		
+		Integer numberrecords = 0;
+		try {
+			String munirefxpathstring = MunicipalityfilereferenceSolveXpathAbspos;
+			referencesxpath = xpath.compile(munirefxpathstring);		///gml:/
+
+			NodeList referencesnodes = (NodeList) referencesxpath.evaluate(xmldocument, XPathConstants.NODESET);
+			evaluate_endtime = new Date();
+
+			for (int referenceindex = 0; referenceindex < referencesnodes.getLength(); referenceindex++) {
+
+				Reference reference = new Reference();
+				String referenceId = "";
+
+		    	String actxpathstring;
+				NodeList actnodes;
+				Date xpath_starttime = new Date();
+				Date xpath_endtime = new Date();
+				
+				Node actreference = (Node) referencesnodes.item(referenceindex);
+		    	//System.out.println(" reference # " + referenceindex + "  [" + actreference.getNodeName() + "] === " + actreference.getTextContent() + "===");
+
+	    		NamedNodeMap act_attributes = actreference.getAttributes();
+				for(int attri = 0; attri < act_attributes.getLength(); attri++) {
+					Attr act_attribute = (Attr) act_attributes.item(attri);
+					if(act_attribute.getName().equals("gml:id")) {
+						referenceId = act_attribute.getValue().trim();
+					}
+				}
+
+		    	if(!MunicipalityfilereferenceSolveNameXpathRelpos.isEmpty()) {
+			    	actxpathstring = MunicipalityfilereferenceSolveNameXpathRelpos;
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xpath.evaluate(actxpathstring, actreference, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+				    	reference.setName(actnode.getTextContent().trim());
+				    }
+		    	}
+
+		    	if(!MunicipalityfilereferenceSolveIdXpathRelpos.isEmpty()) {
+			    	actxpathstring = MunicipalityfilereferenceSolveIdXpathRelpos;
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xpath.evaluate(actxpathstring, actreference, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+				    	reference.setId(actnode.getTextContent().trim());
+				    }
+		    	}
+String temp_name = "poziom";
+String hierarchy = "";
+		    	if(!temp_name.isEmpty()) {
+			    	actxpathstring = temp_name;
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xpath.evaluate(actxpathstring, actreference, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+				    	hierarchy = actnode.getTextContent().trim();	// 4poziom = municipality, less are admin hierarchies above
+				    	if(!hierarchy.equals(""))
+				    		hierarchy = hierarchy.substring(0,1);
+				    }
+		    	}
+
+				if(hierarchy.equals("4")) {
+					references.put(referenceId, reference);
+					numberrecords++;
+				}
+		    } // end of loop over all address objects
+		} catch (XPathExpressionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Error error) {
+			error.printStackTrace();
+		}
+
+		
+		method_endtime = new Date();
+		System.out.println("");
+		System.out.println(" method time in ms: " + (method_endtime.getTime() - method_starttime.getTime()));
+		System.out.println(" xpath-evaluate time in ms: " + (evaluate_endtime.getTime() -  evaluate_starttime.getTime()));
+		System.out.println("  xpath-compile time in ms: " + xpathms);
+		System.out.println(" bufferoutputms time in ms: " + bufferoutputms);
+
+		return numberrecords;
+	}
+
+
+	private static Integer analyseAddresses(Document xmldocument) {
 		Address address = new Address();
 		Integer numberAddresses = 0;
 
-		java.util.Date method_starttime = new java.util.Date();
-		java.util.Date method_endtime = new java.util.Date();
-		java.util.Date time_debug_starttime = new java.util.Date();
-		java.util.Date time_debug_endtime = new java.util.Date();
-		java.util.Date evaluate_starttime = new java.util.Date();
-		java.util.Date evaluate_endtime = new java.util.Date();
-		java.util.Date xpath_starttime = new java.util.Date();
-		java.util.Date xpath_endtime = new java.util.Date();
+		Date method_starttime = new Date();
+		Date method_endtime = new Date();
+		Date evaluate_starttime = new Date();
+		Date evaluate_endtime = new Date();
+		Date xpath_starttime = new Date();
+		Date xpath_endtime = new Date();
 		Long xpathms = 0L;
-		java.util.Date bufferoutput_starttime = new java.util.Date();
-    	java.util.Date bufferoutput_endtime = new java.util.Date();
+		Date bufferoutput_starttime = new Date();
+    	Date bufferoutput_endtime = new Date();
     	Long bufferoutputms = 0L;
 		
-		evaluate_starttime = new java.util.Date();
+		evaluate_starttime = new Date();
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		XPathExpression addressesxpath;
 		try {
@@ -177,17 +293,16 @@ public class import_stadtstrassenGENERICGml {
 			addressesxpath = xpath.compile(addressesxpathstring);		///gml:/
 
 			NodeList addresses = (NodeList) addressesxpath.evaluate(xmldocument, XPathConstants.NODESET);
-			evaluate_endtime = new java.util.Date();
+			evaluate_endtime = new Date();
 
 	    	String actxpathstring;
-	    	XPathExpression actxpathexp;
 			NodeList actnodes;
 
 		    XPathFactory xpf = XPathFactory.newInstance();
 		    XPath xp = xpf.newXPath();
 			
 			for (int addressindex = 0; addressindex < addresses.getLength(); addressindex++) {
-				String actaddressxpathstring = AddressobjectnameXpathAbspos + "[" + (addressindex + 1) + "]" + "/";
+				Integer muninameindex = -1;
 
 				Node actaddress = (Node) addresses.item(addressindex);
 		    	//System.out.println(" address # " + addressindex + "  [" + actaddress.getNodeName() + "] === " + actaddress.getTextContent() + "===");
@@ -197,23 +312,69 @@ public class import_stadtstrassenGENERICGml {
 				
 		    	if(!MunicipalitynameXpathRelpos.isEmpty()) {
 			    	actxpathstring = MunicipalitynameXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
 				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+				    	muninameindex = nodesindex;
 		  	    		address.setMunicipality(actnode.getTextContent().trim());
 		  	    		address.setMunicipality(capitalize(address.getMunicipality()));
 				    }
 		    	}
 
+		    	if(!MunicipalityfilereferenceXpathRelpos.isEmpty()) {
+			    	actxpathstring = MunicipalityfilereferenceXpathRelpos;
+
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+			    	String referenceId = "";
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+						if(muninameindex == -1) {
+				    		NamedNodeMap act_attributes = actnode.getAttributes();
+							for(int attri = 0; attri < act_attributes.getLength(); attri++) {
+								Attr act_attribute = (Attr) act_attributes.item(attri);
+								if(act_attribute.getName().equals("xlink:href")) {
+									referenceId = act_attribute.getValue().trim();
+								}
+							}
+					    	if(referenceId.indexOf("/") != -1)
+					    		referenceId = referenceId.substring(referenceId.lastIndexOf("/") + 1);
+							if(references.get(referenceId) != null) {
+					    		Reference munireference = references.get(referenceId);
+					    		address.setMunicipalityId(munireference.getId());
+					    	}
+						} else if (muninameindex == nodesindex) {
+				    		NamedNodeMap act_attributes = actnode.getAttributes();
+							for(int attri = 0; attri < act_attributes.getLength(); attri++) {
+								Attr act_attribute = (Attr) act_attributes.item(attri);
+								if(act_attribute.getName().equals("xlink:href")) {
+									referenceId = act_attribute.getValue().trim();
+								}
+							}
+					    	if(referenceId.indexOf("/") != -1)
+					    		referenceId = referenceId.substring(referenceId.lastIndexOf("/") + 1);
+					    	if(references.get(referenceId) != null) {
+					    		Reference munireference = references.get(referenceId);
+					    		address.setMunicipalityId(munireference.getId());
+					    	} else {
+					    		System.out.println("Municipality-ID is not available in list, id ===" + referenceId + "===");
+					    	}
+						}
+				    }
+		    	}
+
 		    	if(!MunicipalityidXpathRelpos.isEmpty()) {
 			    	actxpathstring = MunicipalityidXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -222,11 +383,37 @@ public class import_stadtstrassenGENERICGml {
 				    }
 		    	}
 
+		    	if(!SubareanameXpathRelpos.isEmpty()) {
+			    	actxpathstring = SubareanameXpathRelpos;
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+		  	    		address.setSubArea(actnode.getTextContent().trim());
+				    }
+		    	}
+
+		    	if(!SubidXpathRelpos.isEmpty()) {
+			    	actxpathstring = SubidXpathRelpos;
+					xpath_starttime = new Date();
+					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
+					xpath_endtime = new Date();
+					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
+				    	Node actnode = (Node) actnodes.item(nodesindex);
+				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
+		  	    		address.setSubId(actnode.getTextContent().trim());
+				    }
+		    	}
+		    	
 		    	if(!StreetnameXpathRelpos.isEmpty()) {
 			    	actxpathstring = StreetnameXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -244,9 +431,9 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!PlacenameXpathRelpos.isEmpty()) {
 			    	actxpathstring = PlacenameXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -259,22 +446,22 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!HousenumberXpathRelpos.isEmpty()) {
 			    	actxpathstring = HousenumberXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
 				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
-		  	    		address.setHousenumber(actnode.getTextContent().trim());
+		  	    		address.setHousenumber(actnode.getTextContent().trim().toLowerCase());
 				    }
 		    	}
 
 		    	if(!HousenumberadditionXpathRelpos.isEmpty()) {
 			    	actxpathstring = HousenumberadditionXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -285,9 +472,9 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!PostcodeXpathRelpos.isEmpty()) {
 			    	actxpathstring = PostcodeXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -299,9 +486,9 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!HousenumberobjectidXpathRelpos.isEmpty()) {
 			    	actxpathstring = HousenumberobjectidXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -313,9 +500,9 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!statusXpathRelpos.isEmpty()) {
 			    	actxpathstring = statusXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
@@ -326,9 +513,9 @@ public class import_stadtstrassenGENERICGml {
 
 		    	if(!PointXpathRelpos.isEmpty()) {
 			    	actxpathstring = PointXpathRelpos;
-					xpath_starttime = new java.util.Date();
+					xpath_starttime = new Date();
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
-					xpath_endtime = new java.util.Date();
+					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actpoint = (Node) actnodes.item(nodesindex);
@@ -338,12 +525,14 @@ public class import_stadtstrassenGENERICGml {
 						for(int attri = 0; attri < act_point_attributes.getLength(); attri++) {
 							Attr act_attribute = (Attr) act_point_attributes.item(attri);
 							if(act_attribute.getName().equals("srsName")) {
-								address.setLonlat_srid(act_attribute.getValue().trim().substring(act_attribute.getValue().trim().indexOf(":") + 1));
+								address.setLonlat_srid(act_attribute.getValue().trim().substring(act_attribute.getValue().trim().lastIndexOf(":") + 1));
 							}
 						}
 	
 						NodeList points_subnodes = actpoint.getChildNodes();
 					    int numpointssubnodes = points_subnodes.getLength();
+				    	Double xpos = 0.0D;
+				    	Double ypos = 0.0D;
 					    for (int subpointi = 0; subpointi < numpointssubnodes; subpointi++) {
 					    	Node act_subpoint = (Node) points_subnodes.item(subpointi);
 					    	//System.out.println("act_subpoint ===" + act_subpoint.getNodeName() + "===");
@@ -351,77 +540,74 @@ public class import_stadtstrassenGENERICGml {
 								||	act_subpoint.getNodeName().equals("gml:coordinates")) {
 						    		//<gml:pos>575834.471000001 5942460.453</gml:pos>
 									//<gml:coordinates ts=" " cs="," decimal=".">206453.35,533875.990000001		</gml:coordinates>		in Poland at 2015/04
-								try {
-									String pointstring = act_subpoint.getTextContent();
-									if(pointstring.indexOf(",") != -1)
-										pointstring = pointstring.replace(",", " ");
-									String sql_latlon = "SELECT ST_X("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + pointstring + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lon, "
-				    						+ "ST_Y("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + pointstring + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lat;";
-				    				//System.out.println("Select-Anfrage ==="+sql_latlon+"=== ...");
-				    				ResultSet rs = stmt.executeQuery(sql_latlon);
-				    				if (rs.next()) {
-										address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
-				    				}
-				    				rs.close();
-								} catch (SQLException e) {
-									e.printStackTrace();
+								String pointstring = act_subpoint.getTextContent();
+								String pointparts[] = null;
+								if(pointstring.indexOf(",") != -1)
+									pointparts = pointstring.split(",");
+								else if(pointstring.indexOf(" ") != -1)
+										pointparts = pointstring.split(" ");
+								else
+									System.out.println("neither space nor colon were found to separate lon and lat ===" + pointstring + "===");
+								if(pointparts.length == 2) {
+									xpos = Double.parseDouble(pointparts[1]);
+									ypos = Double.parseDouble(pointparts[0]);
 								}
 						    } else if(act_subpoint.getNodeName().equals("gml:coord")) {
-						    	String xpos = "";
-						    	String ypos = "";
 	
 								NodeList gmlpos_subnodes = act_subpoint.getChildNodes();
 							    int numgmlpossubnodes = gmlpos_subnodes.getLength();
 						    	for (int subgmlpos = 0; subgmlpos < numgmlpossubnodes; subgmlpos++) {
 							    	Node act_subgmlpos = (Node) gmlpos_subnodes.item(subgmlpos);
 								    if(act_subgmlpos.getNodeName().equals("gml:X")) {
-								    	xpos = act_subgmlpos.getTextContent();
+								    	xpos = Double.parseDouble(act_subgmlpos.getTextContent());
 								    } else if(act_subgmlpos.getNodeName().equals("gml:Y")) {
-								    	ypos = act_subgmlpos.getTextContent();
+								    	ypos = Double.parseDouble(act_subgmlpos.getTextContent());
 								    }
 							    }
-						    		//<gml:coord><gml:X>225827.47</gml:X><gml:Y>160343.53</gml:Y></gml:coord>
-								try {
-									String sql_latlon = "SELECT ST_X("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + xpos + " " + ypos + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lon, "
-				    						+ "ST_Y("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + act_subpoint.getTextContent() + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lat;";
-				    				//System.out.println("Select-Anfrage ==="+sql_latlon+"=== ...");
-				    				ResultSet rs = stmt.executeQuery(sql_latlon);
-				    				if (rs.next()) {
-										address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
-				    				}
-				    				rs.close();
-								} catch (SQLException e) {
-									e.printStackTrace();
-								}
 							} else {
 			    	    		if(! act_subpoint.getNodeName().equals("#text")) {
 			    	    			System.out.println("ignorierter act_subpoint ===" + act_subpoint.getNodeName() + "===");
 			    	    		}
 							}
+					    	if(!xpos.equals("") && !ypos.equals("")) {
+								String sql_latlon = "";				    						
+								try {
+									sql_latlon = "SELECT"				    						
+										+ " ST_X(ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326)) AS lon,"				    						
+										+ " ST_Y(ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326)) AS lat;";
+									PreparedStatement coordstmt = conHausnummern.prepareStatement(sql_latlon);
+									
+				    				coordstmt.setDouble(1, xpos);
+				    				coordstmt.setDouble(2, ypos);
+				    				coordstmt.setInt(3, Integer.parseInt(address.getLonlat_srid()));
+				    				coordstmt.setDouble(4, xpos);
+				    				coordstmt.setDouble(5, ypos);
+				    				coordstmt.setInt(6, Integer.parseInt(address.getLonlat_srid()));
+				    				ResultSet rs = coordstmt.executeQuery();
+				    				if (rs.next()) {
+										address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
+				    				}
+				    				rs.close();
+								} catch (SQLException e) {
+									System.out.println("sql_latlon ===" + sql_latlon + "===");
+									e.printStackTrace();
+								}
+					    	}
 					    }
 				    }
 			    }
 
-		    	bufferoutput_starttime = new java.util.Date();
+		    	if(address.getStreet().equals("") && address.getPlace().equals(""))
+		    		address.setStreet(address.getSubArea());
+  	    			
+		    	
+		    	bufferoutput_starttime = new Date();
 	    		osmoutputbuffer.append(address.printosm());
 	    		outputbuffer.append(address.printtxt());
-		    	bufferoutput_endtime = new java.util.Date();
+		    	bufferoutput_endtime = new Date();
 		    	bufferoutputms += (bufferoutput_endtime.getTime() - bufferoutput_starttime.getTime());
-	    		count_addresses++;
-	    		System.out.println("Number of Adresses: " + count_addresses);
 	    		numberAddresses++;
+	    		System.out.println("Number of Adresses: " + numberAddresses);
 		    } // end of loop over all address objects
 		} catch (XPathExpressionException e) {
 			// TODO Auto-generated catch block
@@ -431,7 +617,7 @@ public class import_stadtstrassenGENERICGml {
 		}
 
 		
-		method_endtime = new java.util.Date();
+		method_endtime = new Date();
 		System.out.println("");
 		System.out.println(" method time in ms: " + (method_endtime.getTime() - method_starttime.getTime()));
 		System.out.println(" xpath-evaluate time in ms: " + (evaluate_endtime.getTime() -  evaluate_starttime.getTime()));
@@ -443,157 +629,8 @@ public class import_stadtstrassenGENERICGml {
 	}
 
 
-	// return object   Address
-	private static Address analyseAddress(Node addressobject) {
-		Address address = new Address();
-
-		NodeList childs = addressobject.getChildNodes();
-	    int numantwooords = childs.getLength();
-	    for (int childindex = 0; childindex < numantwooords; childindex++) {
-	    	Node act_child = (Node) childs.item(childindex);
-	    	//System.out.println(" child # " + childindex + "  [" + act_child.getNodeName() + "] === " + act_child.getTextContent() + "===");
-	    	if(act_child.getNodeName().equals(PointXpathRelpos)) {
-	    		NodeList subchilds = act_child.getChildNodes();
-	    	    int numsubchilds = subchilds.getLength();
-	    	    for (int subchildindex = 0; subchildindex < numsubchilds; subchildindex++) {
-	    	    	Node subchild = (Node) subchilds.item(subchildindex);
-	    	    	if(subchild.getNodeName().equals("gml:Point")) {
-		    	    	NamedNodeMap act_point_attributes = subchild.getAttributes();
-						//System.out.println(" node  Attributes (Number: "+act_point_attributes.getLength()+") are:");
-						for(int attri = 0; attri < act_point_attributes.getLength(); attri++) {
-							Attr act_attribute = (Attr) act_point_attributes.item(attri);
-							//System.out.println("* [" + act_attribute.getName()+"] ==="+act_attribute.getValue()+"===");
-							if(act_attribute.getName().equals("srsName")) {
-								address.setLonlat_srid(act_attribute.getValue().trim().substring(act_attribute.getValue().trim().indexOf(":") + 1));
-							}
-						}
-						NodeList points_subnodes = subchild.getChildNodes();
-					    int numpointssubnodes = points_subnodes.getLength();
-					    for (int subpointi = 0; subpointi < numpointssubnodes; subpointi++) {
-					    	Node act_subpoint = (Node) points_subnodes.item(subpointi);
-					    	//System.out.println("act_subpoint ===" + act_subpoint.getNodeName() + "===");
-							if(act_subpoint.getNodeName().equals("gml:pos")) {
-						    		//<gml:pos>575834.471000001 5942460.453</gml:pos>
-								try {
-									String sql_latlon = "SELECT ST_X("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + act_subpoint.getTextContent() + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lon, "
-				    						+ "ST_Y("
-				    						+ "ST_Transform("
-				    						+ "ST_Geomfromtext('Point(" + act_subpoint.getTextContent() + ")'," + address.getLonlat_srid() + ")"
-				    						+ ",4326)) AS lat;";
-				    				//System.out.println("Select-Anfrage ==="+sql_latlon+"=== ...");
-				    				ResultSet rs = stmt.executeQuery(sql_latlon);
-				    				if (rs.next()) {
-										address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
-				    				}
-				    				rs.close();
-								} catch (SQLException e) {
-									e.printStackTrace();
-								}
-						    } else if(act_subpoint.getNodeName().equals("gml:coord")) {
-						    	String xpos = "";
-						    	String ypos = "";
-
-								NodeList gmlpos_subnodes = act_subpoint.getChildNodes();
-							    int numgmlpossubnodes = gmlpos_subnodes.getLength();
-						    	for (int subgmlpos = 0; subgmlpos < numgmlpossubnodes; subgmlpos++) {
-							    	Node act_subgmlpos = (Node) gmlpos_subnodes.item(subgmlpos);
-								    if(act_subgmlpos.getNodeName().equals("gml:X")) {
-								    	xpos = act_subgmlpos.getTextContent();
-								    } else if(act_subgmlpos.getNodeName().equals("gml:Y")) {
-								    	ypos = act_subgmlpos.getTextContent();
-								    }
-							    }
-							    		//<gml:coord><gml:X>225827.47</gml:X><gml:Y>160343.53</gml:Y></gml:coord>
-									try {
-										String sql_latlon = "SELECT ST_X("
-					    						+ "ST_Transform("
-					    						+ "ST_Geomfromtext('Point(" + xpos + " " + ypos + ")'," + address.getLonlat_srid() + ")"
-					    						+ ",4326)) AS lon, "
-					    						+ "ST_Y("
-					    						+ "ST_Transform("
-					    						+ "ST_Geomfromtext('Point(" + act_subpoint.getTextContent() + ")'," + address.getLonlat_srid() + ")"
-					    						+ ",4326)) AS lat;";
-					    				//System.out.println("Select-Anfrage ==="+sql_latlon+"=== ...");
-					    				ResultSet rs = stmt.executeQuery(sql_latlon);
-					    				if (rs.next()) {
-											address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
-					    				}
-					    				rs.close();
-									} catch (SQLException e) {
-										e.printStackTrace();
-									}
-						    	
-							} else {
-			    	    		if(! act_subpoint.getNodeName().equals("#text")) {
-			    	    			System.out.println("ignorierter act_subpoint ===" + act_subpoint.getNodeName() + "===");
-			    	    		}
-							}
-					    }
-	    	    	} else {
-	    	    		if(! subchild.getNodeName().equals("#text")) {
-	    	    			System.out.println("ignorierter subchild in " + PointXpathRelpos + "===    [" + subchild.getNodeName() + "] ===" + subchild.getTextContent() + "===");
-	    	    		}
-	    	    	}
-	    		}
-	    	} else if(act_child.getNodeName().equals(StreetnameXpathRelpos)) {
-	    		address.setStreet(act_child.getTextContent().trim());
-	    		if(address.getStreet().indexOf("Ulica") != -1)
-	    			address.setStreet(address.getStreet().replaceFirst("^Ulica ", ""));
-	    	} else if(act_child.getNodeName().equals(PlacenameXpathRelpos)) {
-	    		address.setPlace(act_child.getTextContent().trim());
-	    		if(address.getPlace().indexOf("Ulica") != -1)
-	    			address.setPlace(address.getPlace().replaceFirst("^Ulica ", ""));
-	    	} else if(act_child.getNodeName().equals(HousenumberXpathRelpos)) {
-	    		address.setHousenumber(act_child.getTextContent().trim());
-	    	} else if(act_child.getNodeName().equals(HousenumberadditionXpathRelpos)) {
-	    		address.setHousenumberaddition(act_child.getTextContent().trim());
-	    	} else if(act_child.getNodeName().equals(PostcodeXpathRelpos)) {
-	    	    address.setPostcode(act_child.getTextContent().trim());
-	    	} else if(act_child.getNodeName().equals(MunicipalitynameXpathRelpos)) {
-	    		address.setMunicipality(act_child.getTextContent().trim());
-	    	} else if(act_child.getNodeName().equals(MunicipalityidXpathRelpos)) {
-	    		address.setMunicipalityId(act_child.getTextContent().trim());
-	    	} else if(act_child.getNodeName().equals(HousenumberobjectidXpathRelpos)) {
-	    		address.setDataid(act_child.getTextContent().trim());
-	    	} else {
-	    		if(address.getKeyvalue(act_child.getNodeName()) == null)
-	    			address.addKeyvalue(act_child.getNodeName(), act_child.getTextContent().trim());
-		    	//System.out.println("ignorierter node ===" + act_child.getNodeName() + "===");
-	    	}
-	    }
-	    return address;
-	}
-
-
-	
-	private static void Subtree(Node subtreeobject) {
-
-		NodeList childs = subtreeobject.getChildNodes();
-	    int numchilds = childs.getLength();
-	    for (int childindex = 0; childindex < numchilds; childindex++) {
-	    	Node actNode = (Node) childs.item(childindex);
-	    	//System.out.println("- act node ===" + actNode.getNodeName() + "===");
-	    	if(actNode.getNodeName().equals(AddressobjectnameXpathAbspos)) {
-	    		Address address = analyseAddress(actNode);
-	    		osmoutputbuffer.append(address.printosm());
-	    		outputbuffer.append(address.printtxt());
-	    		count_addresses++;
-	    		//System.out.println("Address # " + count_addresses);
-	    	} else {
-	    		if(actNode.getChildNodes().getLength() > 0) {
-	    			Subtree(actNode);
-	    		}
-	    	}
-	    	
-	    }
-	}
-
-
-	static String getNextGmlRecords(InputStreamReader filereader, Integer numberNextGmlRecords) {
-
+	static Long bytesreadtotal = 0L;
+	static String getNextRecords(InputStreamReader filereader, String membername, Integer numberNextGmlRecords) {	
 		Integer numberRecords = 0;
 		boolean headeraktiv = false;
 		boolean finished = false;
@@ -612,6 +649,11 @@ public class import_stadtstrassenGENERICGml {
 
 				bytesread = filereader.read(charbuffer, 0, charbuffer.length);
 
+				if((bytesreadtotal/1000000) != ((bytesreadtotal+bytesread)/1000000)) {
+					System.out.println(" read " + ((bytesreadtotal+bytesread)/1000000) + " MB of file content");
+				}
+				bytesreadtotal += charbuffer.length;
+
 				if(! readerReststring.equals("")) {
 					aktText = readerReststring;
 					readerReststring = "";
@@ -629,7 +671,7 @@ public class import_stadtstrassenGENERICGml {
 					headeraktiv = true;
 				}
 				if(headeraktiv) {
-					String headerEndString = "<" + gmlFeaturemember;
+					String headerEndString = "<" + gmlFeaturemembers;
 					if(aktText.indexOf(headerEndString) != -1) {
 						Integer startpos = 0;
 						if(readerHeader.length() == 0) {
@@ -638,9 +680,11 @@ public class import_stadtstrassenGENERICGml {
 								startpos = 1;
 							System.out.println("Codezeichen: " + codezeichen);
 						}
-						readerHeader.append(aktText.substring(startpos,aktText.indexOf(headerEndString)));
+						Integer endpos = aktText.indexOf(headerEndString);
+						endpos = aktText.indexOf(">", endpos) + 1;
+						readerHeader.append(aktText.substring(startpos,endpos));
 						headeraktiv = false;
-						aktText = aktText.substring(aktText.indexOf(headerEndString));
+						aktText = aktText.substring(endpos);
 					} else {
 						readerReststring = aktText;
 						aktText = "";
@@ -650,10 +694,10 @@ public class import_stadtstrassenGENERICGml {
 				Integer startpos = -1;
 				Integer endpos = -1;
 				if(! headeraktiv) {
-					String recordStartString = "<" + gmlFeaturemember;
+					String recordStartString = "<" + membername;
 					while(aktText.indexOf(recordStartString) != -1) {
 						startpos = aktText.indexOf(recordStartString);
-						String recordEndString = "</" + gmlFeaturemember + ">";
+						String recordEndString = "</" + membername + ">";
 						if(aktText.indexOf(recordEndString) != -1) {
 							endpos = aktText.indexOf(recordEndString) + recordEndString.length();
 if(endpos < startpos)
@@ -674,8 +718,10 @@ if(endpos < startpos)
 							aktText = "";
 						}
 					}
-					readerReststring += aktText;
-					aktText = "";
+					if(outputbuffer.length() > 0) {
+						readerReststring += aktText;
+						aktText = "";
+					}
 				}
 				if(numberRecords >= numberNextGmlRecords) {
 					if(! aktText.equals("")) {
@@ -704,19 +750,16 @@ if(endpos < startpos)
 	}
 
 	public static void main(final String[] args) {
-		java.util.Date timeProgramStarttime = new java.util.Date();
-		java.util.Date timeProgramEndtime;
-		java.util.Date nowtime;
-		java.util.Date time_debug_starttime = null;
-		java.util.Date time_debug_endtime = null;
-		java.util.Date looptime_debug_starttime = null;
-		java.util.Date looptime_debug_endtime = null;
+		Date timeProgramStarttime = new Date();
+		Date timeProgramEndtime;
+		Date nowtime;
+		Date time_debug_starttime = null;
+		Date time_debug_endtime = null;
+		Date looptime_debug_starttime = null;
+		Date looptime_debug_endtime = null;
 
 		String parameterLand = "Bundesrepublik Deutschland";
-		String parameterStadt = "";
-		String parameterAgs = "";
 		String parameterImportdateiname = "";
-		String parameterAktiveStadtteileYesno = "n";
 	
 		if ((args.length >= 1) && (args[0].equals("-h"))) {
 			System.out.println("-country Name of Country, as store on evaluation Website or in Admin Polygon in OSM. It not used, 'Bundesrepublik Deutschland' will be used");
@@ -744,12 +787,6 @@ if(endpos < startpos)
 				if (args[argsi].equals("-country")) {
 					parameterLand = args[argsi + 1];
 					argsOkCount += 2;
-				} else if (args[argsi].equals("-municipality")) {
-					parameterStadt = args[argsi + 1];
-					argsOkCount += 2;
-				} else if (args[argsi].equals("-municipalityref")) {
-					parameterAgs = args[argsi + 1];
-					argsOkCount += 2;
 				} else if (args[argsi].equals("-file")) {
 					parameterImportdateiname = args[argsi + 1];
 					argsOkCount += 2;
@@ -767,20 +804,27 @@ if(endpos < startpos)
 		String filecontent = "";
 
 		if(parameterLand.equals("Poland")) {
-						gmlFeaturecollection = "gml:FeatureCollection";
-						gmlFeaturemembers = "gml:featureMembers";
-						gmlFeaturemember = "prga:PRG_PunktAdresowy";
+			gmlFeaturecollection = "gml:FeatureCollection";
+			gmlFeaturemembers = "gml:featureMembers";
+			gmlFeaturemember = "prg-ad:PRG_PunktAdresowy";
 			AddressobjectnameXpathAbspos = "/FeatureCollection/featureMembers/PRG_PunktAdresowy";
 			PointXpathRelpos = "pozycja/Point";
-			MunicipalitynameXpathRelpos = "jednostkaAdministracyjna[1]/PRG_JednostkaAdministracyjnaNazwa/nazwa";
-			MunicipalityidXpathRelpos = "jednostkaAdministracyjna[1]/PRG_JednostkaAdministracyjnaNazwa/idTERYT";
-						PostcodeXpathRelpos = "";
-						PlacenameXpathRelpos = ""; //mjs_nazwa;
-			StreetnameXpathRelpos = "ulica/AD_NazwaUlicy/nazwaGlownaCzesc";
+			MunicipalitynameXpathRelpos = "jednostkaAdmnistracyjna";  // admin_level: 8=miejscowosc, 7=jednostkaAdmnistracyjna
+			MunicipalityidXpathRelpos = ""; 		//jednostkaAdministracyjna[1]/PRG_JednostkaAdministracyjnaNazwa/idTERYT";
+			MunicipalityfilereferenceXpathRelpos = "komponent";
+			MunicipalityfilereferenceSolveXpathAbspos = "/FeatureCollection/featureMembers/PRG_JednostkaAdministracyjnaNazwa";
+			gmlReferenceobject = "prg-ad:PRG_JednostkaAdministracyjnaNazwa";
+			MunicipalityfilereferenceSolveNameXpathRelpos = "nazwa";
+			MunicipalityfilereferenceSolveIdXpathRelpos = "idTERYT";
+	        SubareanameXpathRelpos = "miejscowosc";
+	        SubidXpathRelpos = "";
+			PostcodeXpathRelpos = "kodPocztowy";
+			PlacenameXpathRelpos = "miejscowosc";
+			StreetnameXpathRelpos = "ulica";
 			HousenumberXpathRelpos = "numerPorzadkowy";
-						HousenumberadditionXpathRelpos = "";
+			HousenumberadditionXpathRelpos = "";
 			HousenumberobjectidXpathRelpos = "idIIP/BT_Identyfikator/lokalnyId";
-			statusXpathRelpos = "status";
+statusXpathRelpos = "status";
 		} else if(parameterLand.equals("België")) {
 			gmlFeaturecollection = "agiv:FeatureCollection";
 			gmlFeaturemembers = "";
@@ -883,6 +927,11 @@ statusXpathRelpos = "";
 		
 
 		if(parameterLand.equals("Poland")) {
+			streetnamecorrectionmap.put("^Al. ", "Aleja ");
+			streetnamecorrectionmap.put("^Gen. ", "Generała ");
+			streetnamecorrectionmap.put("^Ks. ", "Księdza ");
+			streetnamecorrectionmap.put("^Os. ", "Osiedle ");
+			streetnamecorrectionmap.put("^Pl. ", "Plac ");
 			streetnamecorrectionmap.put("^Ulica ", "");
 		}
 
@@ -940,13 +989,13 @@ statusXpathRelpos = "";
 			if(startoffsetrecords > 0)
 				continuesmode = true;			
 //Integer numberNextGmlRecords = 2;
-Integer numberNextGmlRecords = 1000;
-//Integer maxreadGmlRecords = 100000;
+Integer numberNextGmlRecords = 500;
 String bezirk = "";
 			if(parameterLand.equals("Poland")) {
-				bezirk = "Lubuskie";
-				dateipfad = "/home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Polen/pkt_adresowe";
-				dateipfadname = dateipfad + File.separator + bezirk + ".gml";
+				bezirk = "2016_03_18_07_31_08__22_pomorskie";
+				//dateipfad = "/home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Polen/2016-03-23";
+				dateipfad = "/home/openstreetmap/temp/PolenHnr";
+				dateipfadname = dateipfad + File.separator + bezirk + ".xml";
 				output_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".txt";
 				osmoutput_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".osm";
 				logs_dateipfadname = dateipfad + File.separator + "temp" + File.separator + bezirk + ".log";
@@ -979,9 +1028,60 @@ String bezirk = "";
 
 			InputStreamReader filereader = new InputStreamReader(new FileInputStream(dateipfadname),"UTF-8");
 
+			if(!gmlReferenceobject.equals("")) {
+				boolean contentavailable = true;
+
+				while(contentavailable) {
+					looptime_debug_starttime = new Date();
+					time_debug_starttime = new Date();
+					filecontent = getNextRecords(filereader, gmlReferenceobject, numberNextGmlRecords);
+					time_debug_endtime = new Date();
+					System.out.println(" getNextGmlRecords took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
+					if(filecontent.length() == 0) {
+						contentavailable = false;
+						continue;
+					}
+
+					Integer count_references = 0;
+					try {
+						// parse xml-document.
+						time_debug_starttime = new Date();
+						xml_document = builder.parse(new InputSource(new StringReader(filecontent)));
+						time_debug_endtime = new Date();
+						System.out.println(" builder.parse took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
+
+						time_debug_starttime = new Date();
+						count_references = analyseMunicipalityReference(xml_document);
+					    time_debug_endtime = new Date();
+						System.out.println(" getchildnodes took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
+
+						System.out.println("Number of characters read: " + readerStartpos + "    Number References: " + count_references);
+
+					} catch (org.xml.sax.SAXException saxerror) {
+						System.out.println("ERROR: SAX-Exception during parsing of xml-content");
+						saxerror.printStackTrace();
+						System.out.println("Number of characters read: " + readerStartpos + "    Number References: " + count_references);
+
+						PrintWriter logfilehandle = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+								new FileOutputStream(logs_dateipfadname, true),StandardCharsets.UTF_8)));
+						logfilehandle.println("Number of characters read: " + readerStartpos + "    Number References: " + count_references);
+						logfilehandle.close();
+					}
+					looptime_debug_endtime = new Date();
+					System.out.println(" loop time in ms: " + (looptime_debug_endtime.getTime() -  looptime_debug_starttime.getTime()));
+				}
+				filereader.close();
+			}
+
+			bytesreadtotal = 0L;
+			readerStartpos = 0;
+			readerHeader = new StringBuffer();
+			
+			filereader = new InputStreamReader(new FileInputStream(dateipfadname),"UTF-8");
+
 		    PrintWriter output = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(output_dateipfadname, continuesmode),StandardCharsets.UTF_8)));
-		    output.println("#temp_datensatznr	temp_strasseid	Straße	Hausnummer	Hausnummerzusatz	plz	stadtid	gemeinde	temp_koordinatensystem	lon	lat");
+		    output.println("#temp_datensatznr	temp_strasseid	Straße	Hausnummer	Hausnummerzusatz	plz	stadtid	gemeinde	subarea	subid	temp_koordinatensystem	lon	lat");
 			output.close();
 
 		    PrintWriter osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
@@ -994,7 +1094,7 @@ String bezirk = "";
 
 			if(startoffsetrecords > 0) {
 				while(contentavailable && (count_addresses < startoffsetrecords)) {
-					filecontent = getNextGmlRecords(filereader, numberNextGmlRecords);
+					filecontent = getNextRecords(filereader, gmlFeaturemember, numberNextGmlRecords);
 					if(filecontent.length() == 0) {
 						contentavailable = false;
 						continue;
@@ -1003,10 +1103,10 @@ String bezirk = "";
 			}
 
 			while(contentavailable) {
-				looptime_debug_starttime = new java.util.Date();
-				time_debug_starttime = new java.util.Date();
-				filecontent = getNextGmlRecords(filereader, numberNextGmlRecords);
-				time_debug_endtime = new java.util.Date();
+				looptime_debug_starttime = new Date();
+				time_debug_starttime = new Date();
+				filecontent = getNextRecords(filereader, gmlFeaturemember, numberNextGmlRecords);
+				time_debug_endtime = new Date();
 				System.out.println(" getNextGmlRecords took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
 				if(filecontent.length() == 0) {
 					contentavailable = false;
@@ -1016,31 +1116,32 @@ String bezirk = "";
 
 				try {
 					// parse xml-document.
-					time_debug_starttime = new java.util.Date();
+					time_debug_starttime = new Date();
 					xml_document = builder.parse(new InputSource(new StringReader(filecontent)));
-					time_debug_endtime = new java.util.Date();
+					time_debug_endtime = new Date();
 					System.out.println(" builder.parse took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
-		
-					time_debug_starttime = new java.util.Date();
-					Integer count_addresses = analyseAddressesNEWMODE(xml_document);
-				    time_debug_endtime = new java.util.Date();
+
+					time_debug_starttime = new Date();
+					count_addresses += analyseAddresses(xml_document);
+				    time_debug_endtime = new Date();
 					System.out.println(" getchildnodes took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
-	
+
 					System.out.println("Anzahl Zeichen gelesen: " + readerStartpos + "    Anzahl Adressen: " + count_addresses);
-				
-					time_debug_starttime = new java.util.Date();
+
+					time_debug_starttime = new Date();
 				    output = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
-							new FileOutputStream(output_dateipfadname, true),StandardCharsets.UTF_8)));
+						new FileOutputStream(output_dateipfadname, true),StandardCharsets.UTF_8)));
 					output.print(outputbuffer.toString());
 					output.close();
-	
+
 					outputbuffer = new StringBuffer();
-	
-				
+
+
 				    osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
-							new FileOutputStream(osmoutput_dateipfadname, true),StandardCharsets.UTF_8)));
+						new FileOutputStream(osmoutput_dateipfadname, true),StandardCharsets.UTF_8)));
 					osmOutput.print(osmoutputbuffer.toString());
-					time_debug_endtime = new java.util.Date();
+					osmOutput.close();
+					time_debug_endtime = new Date();
 					System.out.println(" writing to file took time in ms: " + (time_debug_endtime.getTime() -  time_debug_starttime.getTime()));
 				
 					osmoutputbuffer = new StringBuffer();
@@ -1054,10 +1155,9 @@ String bezirk = "";
 					logfilehandle.println("Anzahl Zeichen gelesen: " + readerStartpos + "    Anzahl Adressen: " + count_addresses);
 					logfilehandle.close();
 				}
-				looptime_debug_endtime = new java.util.Date();
+				looptime_debug_endtime = new Date();
 				System.out.println(" loop time in ms: " + (looptime_debug_endtime.getTime() -  looptime_debug_starttime.getTime()));
 			}
-
 			filereader.close();
 
 		    osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
@@ -1065,23 +1165,23 @@ String bezirk = "";
     		osmOutput.println("</osm>");
 			osmOutput.close();
 			
-		    nowtime = new java.util.Date();
+		    nowtime = new Date();
 			System.out.println("Programm-Dauer bis Ende Dateiverarbeitung in sek: " + (nowtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 
 
 
-		    nowtime = new java.util.Date();
+		    nowtime = new Date();
 			System.out.println("Programm-Dauer bis Ende rausschreiben txt-Datei in sek: " + (nowtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 			
 			//housenumberlist.storeToDB();
 
-		    nowtime = new java.util.Date();
+		    nowtime = new Date();
 			System.out.println("Programm-Dauer bis Ende DB-Speicherung in sek: " + (nowtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 			
 			stmt.close();
 			conHausnummern.close();
 
-			timeProgramEndtime = new java.util.Date();
+			timeProgramEndtime = new Date();
 			System.out.println("Programm-Dauer in sek: " + (timeProgramEndtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 			
 		} 
