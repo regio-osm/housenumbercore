@@ -83,7 +83,7 @@ public class import_stadtstrassenGENERICGml {
 	static StringBuffer osmoutputbuffer = new StringBuffer();
 
 	static StringBuffer readerHeader = new StringBuffer();
-	static String readerReststring = "";
+//	static String readerReststring = "";
 	static Integer readerStartpos = 0; 
 
 	static Integer count_addresses = 0;
@@ -630,19 +630,31 @@ String hierarchy = "";
 
 
 	static Long bytesreadtotal = 0L;
+	static StringBuffer readerRestBuffer = new StringBuffer();
+	
+	
+	static void initRecordsReader() {
+		bytesreadtotal = 0L;
+		readerStartpos = 0;
+		readerHeader = new StringBuffer();
+		readerRestBuffer = new StringBuffer();
+	}
+	
 	static String getNextRecords(InputStreamReader filereader, String membername, Integer numberNextGmlRecords) {	
 		Integer numberRecords = 0;
 		boolean headeraktiv = false;
 		boolean finished = false;
 		Integer bytesread = 0;
 		Integer bytesreadTotal = 0;
+		Integer BUFFERMAXTOHOLD = 10000;		// set a value to more than maximum length of a record - if a record start tag will not be found in text, limit to this value
+												// for next read. This prevents to hold a lot of unneccessary MB in memory
 
 		StringBuffer outputbuffer = new StringBuffer();
 
 		String aktText = "";
-		char[] charbuffer = new char[1000];
+		char[] charbuffer = new char[3000];
 
-		System.out.println("Start reading gml-File ...");
+		System.out.println("Start reading xml-File ...");
 		try {
 			do {
 				aktText = "";
@@ -654,9 +666,8 @@ String hierarchy = "";
 				}
 				bytesreadtotal += charbuffer.length;
 
-				if(! readerReststring.equals("")) {
-					aktText = readerReststring;
-					readerReststring = "";
+				if(readerRestBuffer.length() > 0) {
+					aktText = readerRestBuffer.toString();
 				}
 
 				if(bytesread > -1) {
@@ -686,15 +697,22 @@ String hierarchy = "";
 						headeraktiv = false;
 						aktText = aktText.substring(endpos);
 					} else {
-						readerReststring = aktText;
+						readerRestBuffer = new StringBuffer(aktText);
 						aktText = "";
 						continue;
 					}
 				}
 				Integer startpos = -1;
 				Integer endpos = -1;
+				readerRestBuffer = new StringBuffer();
 				if(! headeraktiv) {
 					String recordStartString = "<" + membername;
+						// if start tag will not be found, directly reduce active text to hold further to just number of search start tags, because if could be in text partly
+					if((aktText.indexOf(recordStartString) == -1) && (aktText.length() > BUFFERMAXTOHOLD)) {
+						Integer local_old_length = aktText.length();
+						aktText = aktText.substring(aktText.length() - BUFFERMAXTOHOLD);
+						System.out.println("purged text buffer with unusable content from " + local_old_length + " to " + aktText.length());
+					}
 					while(aktText.indexOf(recordStartString) != -1) {
 						startpos = aktText.indexOf(recordStartString);
 						String recordEndString = "</" + membername + ">";
@@ -707,27 +725,24 @@ if(endpos < startpos)
 
 							numberRecords++;
 							if(numberRecords >= numberNextGmlRecords) {
-								if(! aktText.equals("")) {
-									readerReststring = aktText;
-									aktText = "";
-								}
+								readerRestBuffer.append(aktText);
+								aktText = "";
 								break;
 							}
 						} else {
-							readerReststring = aktText;
+							readerRestBuffer.append(aktText);
 							aktText = "";
+							break;
 						}
 					}
-					if(outputbuffer.length() > 0) {
-						readerReststring += aktText;
+					if((outputbuffer.length() > 0)) {
+						readerRestBuffer.append(aktText);
 						aktText = "";
 					}
 				}
 				if(numberRecords >= numberNextGmlRecords) {
-					if(! aktText.equals("")) {
-						readerReststring = aktText;
-						aktText = "";
-					}
+					readerRestBuffer.append(aktText);
+					aktText = "";
 					finished = true;
 				}
 			} while(! finished);
@@ -737,7 +752,7 @@ if(endpos < startpos)
 			return outputbuffer.toString();
 		}
 
-		System.out.println("End reading gml-File, number of characters: " + bytesreadTotal);
+		System.out.println("End reading xml-File, number of characters: " + bytesreadTotal);
 
 		if(outputbuffer.length() > 0) {
 			if(!gmlFeaturemembers.equals("") && outputbuffer.indexOf("</" + gmlFeaturemembers + ">") == -1)
@@ -928,10 +943,14 @@ statusXpathRelpos = "";
 
 		if(parameterLand.equals("Poland")) {
 			streetnamecorrectionmap.put("^Al. ", "Aleja ");
+			streetnamecorrectionmap.put("^dr ", "Doktora ");
 			streetnamecorrectionmap.put("^Gen. ", "Generała ");
+			streetnamecorrectionmap.put("^gen. ", "Generała ");
+			streetnamecorrectionmap.put("^ks. ", "Księdza ");
 			streetnamecorrectionmap.put("^Ks. ", "Księdza ");
 			streetnamecorrectionmap.put("^Os. ", "Osiedle ");
 			streetnamecorrectionmap.put("^Pl. ", "Plac ");
+			streetnamecorrectionmap.put("^płk. ", "Pułkownika ");
 			streetnamecorrectionmap.put("^Ulica ", "");
 		}
 
@@ -992,7 +1011,7 @@ statusXpathRelpos = "";
 Integer numberNextGmlRecords = 500;
 String bezirk = "";
 			if(parameterLand.equals("Poland")) {
-				bezirk = "2016_03_18_07_31_08__22_pomorskie";
+				bezirk = "2016_03_18_07_31_08__28_warmińsko-mazurskie";
 				//dateipfad = "/home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Polen/2016-03-23";
 				dateipfad = "/home/openstreetmap/temp/PolenHnr";
 				dateipfadname = dateipfad + File.separator + bezirk + ".xml";
@@ -1027,7 +1046,8 @@ String bezirk = "";
 			builder = factory.newDocumentBuilder();
 
 			InputStreamReader filereader = new InputStreamReader(new FileInputStream(dateipfadname),"UTF-8");
-
+			initRecordsReader();
+			
 			if(!gmlReferenceobject.equals("")) {
 				boolean contentavailable = true;
 
@@ -1061,10 +1081,15 @@ String bezirk = "";
 						System.out.println("ERROR: SAX-Exception during parsing of xml-content");
 						saxerror.printStackTrace();
 						System.out.println("Number of characters read: " + readerStartpos + "    Number References: " + count_references);
+						System.out.println("CONTENT START ===\n" + filecontent + "\n=== CONTENT END");
+						saxerror.printStackTrace();
 
 						PrintWriter logfilehandle = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
 								new FileOutputStream(logs_dateipfadname, true),StandardCharsets.UTF_8)));
 						logfilehandle.println("Number of characters read: " + readerStartpos + "    Number References: " + count_references);
+						logfilehandle.println(saxerror.toString());
+						logfilehandle.println("CONTENT START ===\n" + filecontent + "\n=== CONTENT END");
+						logfilehandle.println(saxerror.toString());
 						logfilehandle.close();
 					}
 					looptime_debug_endtime = new Date();
@@ -1073,15 +1098,13 @@ String bezirk = "";
 				filereader.close();
 			}
 
-			bytesreadtotal = 0L;
-			readerStartpos = 0;
-			readerHeader = new StringBuffer();
+			initRecordsReader();
 			
 			filereader = new InputStreamReader(new FileInputStream(dateipfadname),"UTF-8");
 
 		    PrintWriter output = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(output_dateipfadname, continuesmode),StandardCharsets.UTF_8)));
-		    output.println("#temp_datensatznr	temp_strasseid	Straße	Hausnummer	Hausnummerzusatz	plz	stadtid	gemeinde	subarea	subid	temp_koordinatensystem	lon	lat");
+		    output.println("#temp_datensatznr	temp_strasseid	Straße	Hausnummer	Hausnummerzusatz	plz	gemeindeid	gemeinde	subarea	subid	temp_koordinatensystem	lon	lat");
 			output.close();
 
 		    PrintWriter osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
@@ -1149,10 +1172,14 @@ String bezirk = "";
 					System.out.println("ERROR: SAX-Exception during parsing of xml-content");
 					saxerror.printStackTrace();
 					System.out.println("Anzahl Zeichen gelesen: " + readerStartpos + "    Anzahl Adressen: " + count_addresses);
+					System.out.println("CONTENT BEGIN ===\n" + filecontent + "\n=== CONTENT END");
 
 					PrintWriter logfilehandle = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
 							new FileOutputStream(logs_dateipfadname, true),StandardCharsets.UTF_8)));
 					logfilehandle.println("Anzahl Zeichen gelesen: " + readerStartpos + "    Anzahl Adressen: " + count_addresses);
+					logfilehandle.println(saxerror.toString());
+					logfilehandle.println("CONTENT START ===\n" + filecontent + "\n=== CONTENT END");
+					logfilehandle.println(saxerror.toString());
 					logfilehandle.close();
 				}
 				looptime_debug_endtime = new Date();

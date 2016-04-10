@@ -585,7 +585,8 @@ public class TheoreticalHousenumbers {
 		String protokolloutput = "";
 
 		final String TAG_ADDRESSINCOMPLETE = "___temp___addressincomplete";
-
+		final String TAG_ADDRESSASSOCSTREETADDED = "___temp___addressstreetfromassociatedrel";	// Tag, that will be added to addresses, where addr:street was set in osm via associatedStreet Relation 
+		
 		java.util.Date time_evalation = null;
 		DateFormat date_formatter = new SimpleDateFormat("yyyy-MM-dd");		// in iso8601 format, with timezone
 		DateFormat time_formatter_iso8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");		// in iso8601 format, with timezone
@@ -877,7 +878,7 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 				String sqlbefehl_objekte = "";
 				sqlbefehl_objekte = "SELECT osm_id AS id, tags->'addr:housenumber' AS hausnummer, tags->'addr:street' AS strasse, tags->'addr:place' AS place,";
 				sqlbefehl_objekte += " tags->'building' AS building, tags AS tags_string, ST_AsText(ST_Transform(ST_Centroid(way),4326)) as lonlat,";
-				sqlbefehl_objekte += " tags -> ? AS addressincomplete";
+				sqlbefehl_objekte += " tags -> ? AS addressincomplete, tags -> ? AS streetfromassociatedrel";
 				sqlbefehl_objekte += " FROM planet_polygon WHERE";
 				sqlbefehl_objekte += " (ST_Covers(?::geometry, way)";
 				sqlbefehl_objekte += ") AND";
@@ -886,7 +887,8 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 				System.out.println("sqlbefehl_objekte (polygons) ==="+sqlbefehl_objekte+"===");
 				PreparedStatement stmt_objekte = con_mapnik.prepareStatement(sqlbefehl_objekte);
 				stmt_objekte.setString(1, TAG_ADDRESSINCOMPLETE);
-				stmt_objekte.setString(2, gebietsgeometrie);
+				stmt_objekte.setString(2, TAG_ADDRESSASSOCSTREETADDED);
+				stmt_objekte.setString(3, gebietsgeometrie);
 
 				ResultSet rs_objekte;
 				time_debug_starttime = new java.util.Date();
@@ -931,7 +933,15 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 							anzahl_ways_addrstreet_treffer++;
 						}
 					}
-					
+
+					if(rs_objekte.getString("streetfromassociatedrel") != null) {
+						if(rs_objekte.getLong("id") < 0) {
+							anzahl_polygons_associatedstreet_treffer++;
+						} else {
+							anzahl_ways_associatedstreet_treffer++;
+						}
+					}
+
 						// wenn addr:street fehlt, dann prüfen, ob das Objekt zu einer relation associatedStreet gehört
 					if((temp_aktstrasse == null) && (temp_aktplace == null)) {
 						if(!parameterSearchForAssociatedStreetRelations) {
@@ -954,7 +964,6 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 									} else {
 										anzahl_ways_associatedstreet_treffer++;
 									}
-								
 								}
 							} else {
 // TODO rausschreiben in eine log-tabelle, damit User über diese potentiellen Kandidaten informiert werden
@@ -1051,7 +1060,7 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 				sqlbefehl_objekte = "";
 				sqlbefehl_objekte = "SELECT osm_id as id, tags->'addr:housenumber' AS hausnummer, tags->'addr:street' AS strasse, tags->'addr:place' AS place,";
 				sqlbefehl_objekte += " tags->'building' AS building, tags AS tags_string, ST_AsText(ST_Transform(ST_Centroid(way),4326)) as lonlat,";
-				sqlbefehl_objekte += " tags -> ? AS addressincomplete";
+				sqlbefehl_objekte += " tags -> ? AS addressincomplete, tags -> ? AS streetfromassociatedrel";
 				sqlbefehl_objekte += " FROM planet_line WHERE";
 				sqlbefehl_objekte += " exist(tags, 'addr:housenumber') AND";
 				sqlbefehl_objekte += " (ST_Covers(?::geometry, way) OR";			// ST_Covers = no point outside
@@ -1060,8 +1069,9 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 
 				stmt_objekte = con_mapnik.prepareStatement(sqlbefehl_objekte);
 				stmt_objekte.setString(1, TAG_ADDRESSINCOMPLETE);
-				stmt_objekte.setString(2, gebietsgeometrie);
+				stmt_objekte.setString(2, TAG_ADDRESSASSOCSTREETADDED);
 				stmt_objekte.setString(3, gebietsgeometrie);
+				stmt_objekte.setString(4, gebietsgeometrie);
 				logger.log(Level.FINE, "sqlbefehl_objekte (line) ==="+sqlbefehl_objekte+"===");
 
 				time_debug_starttime = new java.util.Date();
@@ -1089,6 +1099,10 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 
 					if(temp_aktstrasse != null) {
 							anzahl_ways_addrstreet_treffer++;
+					}
+
+					if(rs_objekte.getString("streetfromassociatedrel") != null) {
+						anzahl_ways_associatedstreet_treffer++;
 					}
 					
 					if((temp_aktstrasse == null) && (temp_aktplace == null)) {
@@ -1183,13 +1197,14 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 					// Hol alle Hausnummern an Knoten (in osm nodes)
 				sqlbefehl_objekte = "SELECT osm_id AS id, tags->'addr:housenumber' AS hausnummer, tags->'addr:street' AS strasse, tags->'addr:place' AS place,";
 				sqlbefehl_objekte += " tags->'building' as building, tags AS tags_string, ST_AsText(ST_Transform(way,4326)) as lonlat,";
-				sqlbefehl_objekte += " tags -> ? AS addressincomplete";
+				sqlbefehl_objekte += " tags -> ? AS addressincomplete, tags -> ? AS streetfromassociatedrel";
 				sqlbefehl_objekte += " FROM planet_point";
 				sqlbefehl_objekte += " WHERE exist(tags, 'addr:housenumber') AND ST_Covers(?::geometry, way);";
 
 				stmt_objekte = con_mapnik.prepareStatement(sqlbefehl_objekte);
 				stmt_objekte.setString(1, TAG_ADDRESSINCOMPLETE);
-				stmt_objekte.setString(2, gebietsgeometrie);
+				stmt_objekte.setString(2, TAG_ADDRESSASSOCSTREETADDED);
+				stmt_objekte.setString(3, gebietsgeometrie);
 				logger.log(Level.FINE, "sqlbefehl_objekte (nodes) ==="+sqlbefehl_objekte+"===");
 				
 				time_debug_starttime = new java.util.Date();
@@ -1217,7 +1232,11 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 					if(temp_aktstrasse != null) {
 						anzahl_nodes_addrstreet_treffer++;
 					}
-					
+
+					if(rs_objekte.getString("streetfromassociatedrel") != null) {
+						anzahl_nodes_associatedstreet_treffer++;
+					}
+
 					if((temp_aktstrasse == null) && (temp_aktplace == null)) {
 						if(!parameterSearchForAssociatedStreetRelations) {
 							adressenunvollstaendig_liste.append("n" + rs_objekte.getLong("id") + ",");
