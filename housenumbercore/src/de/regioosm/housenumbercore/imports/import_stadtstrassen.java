@@ -655,25 +655,29 @@ public class import_stadtstrassen {
 					laengengrad = 0d;
 					if ((spalten.length > spaltenindexLaengengrad) && (spaltenindexLaengengrad != -1)) {
 						String localstring = spalten[spaltenindexLaengengrad].trim();
-						try {
-							localstring = localstring.replace(",",".");
-							laengengrad = Double.parseDouble(localstring);
-							geocoordindatesavailable = true;
-						} catch (NumberFormatException nofloat) {
-							System.out.println("Warning: cannot convert input Längengrad value as float ===" + spalten[spaltenindexLaengengrad].trim() + "===  preconvert to number ==="+localstring +"===");
-							System.out.println(" (cont) error stack follows " + nofloat.toString());
+						if(!localstring.equals("")) {
+							try {
+								localstring = localstring.replace(",",".");
+								laengengrad = Double.parseDouble(localstring);
+								geocoordindatesavailable = true;
+							} catch (NumberFormatException nofloat) {
+								System.out.println("Warning: cannot convert input Längengrad value as float ===" + spalten[spaltenindexLaengengrad].trim() + "===  preconvert to number ==="+localstring +"===");
+								System.out.println(" (cont) error stack follows " + nofloat.toString());
+							}
 						}
 					}
 					breitengrad = 0d;
 					if ((spalten.length > spaltenindexBreitengrad) && (spaltenindexBreitengrad != -1)) {
 						String localstring = spalten[spaltenindexBreitengrad].trim();
-						try {
-							localstring = localstring.replace(",",".");
-							breitengrad = Double.parseDouble(localstring);
-							geocoordindatesavailable = true;
-						} catch (NumberFormatException nofloat) {
-							System.out.println("Warning: cannot convert input Breitengrad value as float ===" + spalten[spaltenindexBreitengrad].trim() + "===  preconvert to number ==="+localstring +"===");
-							System.out.println(" (cont) error stack follows " + nofloat.toString());
+						if(!localstring.equals("")) {
+							try {
+								localstring = localstring.replace(",",".");
+								breitengrad = Double.parseDouble(localstring);
+								geocoordindatesavailable = true;
+							} catch (NumberFormatException nofloat) {
+								System.out.println("Warning: cannot convert input Breitengrad value as float ===" + spalten[spaltenindexBreitengrad].trim() + "===  preconvert to number ==="+localstring +"===");
+								System.out.println(" (cont) error stack follows " + nofloat.toString());
+							}
 						}
 					}
 					
