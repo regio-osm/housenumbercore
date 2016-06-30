@@ -25,6 +25,7 @@ package de.regioosm.housenumbercore.imports;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -42,6 +43,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
+
+
+
+import java.util.TreeMap;
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.ImportHausnummerliste;
@@ -78,6 +83,568 @@ public class import_stadtstrassen {
 	 */
 	private static final int FILECOLUMNMINLENGTH = 2; 
 
+	private static String getLuxembourgMunicipalityforSubarea(String subareaname) {
+
+		TreeMap <String, String> locality = new TreeMap<String, String> ();
+		locality.put("Beaufort", "Beaufort");
+		locality.put("Dillingen", "Beaufort");
+		locality.put("Grundhof (Beaufort)", "Beaufort");
+		locality.put("Altrier", "Bech");
+		locality.put("Bech", "Bech");
+		locality.put("Blumenthal (Bech)", "Bech");
+		locality.put("Geyershof (Bech)", "Bech");
+		locality.put("Graulinster (Bech)", "Bech");
+		locality.put("Hemstal", "Bech");
+		locality.put("Hersberg", "Bech");
+		locality.put("Kobenbour", "Bech");
+		locality.put("Rippig", "Bech");
+		locality.put("Zittig", "Bech");
+		locality.put("Beckerich", "Beckerich");
+		locality.put("Elvange", "Beckerich");
+		locality.put("Hovelange", "Beckerich");
+		locality.put("Huttange", "Beckerich");
+		locality.put("Levelange", "Beckerich");
+		locality.put("Noerdange", "Beckerich");
+		locality.put("Oberpallen", "Beckerich");
+		locality.put("Schweich", "Beckerich");
+		locality.put("Berdorf", "Berdorf");
+		locality.put("Bollendorf-Pont", "Berdorf");
+		locality.put("Grundhof (Berdorf)", "Berdorf");
+		locality.put("Kalkesbach (Berdorf)", "Berdorf");
+		locality.put("Weilerbach", "Berdorf");
+		locality.put("Bertrange", "Bertrange");
+		locality.put("Abweiler", "Bettembourg");
+		locality.put("Bettembourg", "Bettembourg");
+		locality.put("Fennange", "Bettembourg");
+		locality.put("Huncherange", "Bettembourg");
+		locality.put("Noertzange", "Bettembourg");
+		locality.put("Bettendorf", "Bettendorf");
+		locality.put("Gilsdorf", "Bettendorf");
+		locality.put("Moestroff", "Bettendorf");
+		locality.put("Berg (Betzdorf)", "Betzdorf");
+		locality.put("Betzdorf", "Betzdorf");
+		locality.put("Mensdorf", "Betzdorf");
+		locality.put("Olingen", "Betzdorf");
+		locality.put("Roodt-sur-Syre", "Betzdorf");
+		locality.put("Bissen", "Bissen");
+		locality.put("Roost (Bissen)", "Bissen");
+		locality.put("Biwer", "Biwer");
+		locality.put("Biwerbach", "Biwer");
+		locality.put("Boudler", "Biwer");
+		locality.put("Boudlerbach", "Biwer");
+		locality.put("Breinert", "Biwer");
+		locality.put("Brouch (Wecker)", "Biwer");
+		locality.put("Hagelsdorf", "Biwer");
+		locality.put("Wecker", "Biwer");
+		locality.put("Wecker-Gare", "Biwer");
+		locality.put("Weydig", "Biwer");
+		locality.put("Bill", "Boevange-sur-Attert");
+		locality.put("Boevange-sur-Attert", "Boevange-sur-Attert");
+		locality.put("Brouch (Mersch)", "Boevange-sur-Attert");
+		locality.put("Buschdorf", "Boevange-sur-Attert");
+		locality.put("Finsterthal", "Boevange-sur-Attert");
+		locality.put("Grevenknapp", "Boevange-sur-Attert");
+		locality.put("Openthalt", "Boevange-sur-Attert");
+		locality.put("Baschleiden", "Boulaide");
+		locality.put("Boulaide", "Boulaide");
+		locality.put("Surré", "Boulaide");
+		locality.put("Bourscheid", "Bourscheid");
+		locality.put("Bourscheid Moulin", "Bourscheid");
+		locality.put("Bourscheid-Plage", "Bourscheid");
+		locality.put("Dirbach (Bourscheid)", "Bourscheid");
+		locality.put("Flebour", "Bourscheid");
+		locality.put("Friedbusch", "Bourscheid");
+		locality.put("Goebelsmühle", "Bourscheid");
+		locality.put("Kehmen", "Bourscheid");
+		locality.put("Lipperscheid", "Bourscheid");
+		locality.put("Michelau", "Bourscheid");
+		locality.put("Scheidel", "Bourscheid");
+		locality.put("Schlindermanderscheid", "Bourscheid");
+		locality.put("Welscheid", "Bourscheid");
+		locality.put("Assel", "Bous");
+		locality.put("Bous", "Bous");
+		locality.put("Erpeldange (Bous)", "Bous");
+		locality.put("Rolling", "Bous");
+		locality.put("Clervaux", "Clervaux");
+		locality.put("Drauffelt", "Clervaux");
+		locality.put("Eselborn", "Clervaux");
+		locality.put("Fischbach (Clervaux)", "Clervaux");
+		locality.put("Fossenhof", "Clervaux");
+		locality.put("Grindhausen", "Clervaux");
+		locality.put("Heinerscheid", "Clervaux");
+		locality.put("Hupperdange", "Clervaux");
+		locality.put("Kaesfurt (Heinerscheid)", "Clervaux");
+		locality.put("Kalborn", "Clervaux");
+		locality.put("Lausdorn (Heinerscheid)", "Clervaux");
+		locality.put("Lieler", "Clervaux");
+		locality.put("Marnach", "Clervaux");
+		locality.put("Mecher (Clervaux)", "Clervaux");
+		locality.put("Moulin de Kalborn", "Clervaux");
+		locality.put("Munshausen", "Clervaux");
+		locality.put("Reuler", "Clervaux");
+		locality.put("Roder", "Clervaux");
+		locality.put("Siebenaler", "Clervaux");
+		locality.put("Tintesmühle", "Clervaux");
+		locality.put("Urspelt", "Clervaux");
+		locality.put("Weicherdange", "Clervaux");
+		locality.put("Colmar-Berg", "Colmar-Berg");
+		locality.put("Welsdorf", "Colmar-Berg");
+		locality.put("Breidweiler", "Consdorf");
+		locality.put("Colbette", "Consdorf");
+		locality.put("Consdorf", "Consdorf");
+		locality.put("Kalkesbach (Consdorf)", "Consdorf");
+		locality.put("Marscherwald", "Consdorf");
+		locality.put("Scheidgen", "Consdorf");
+		locality.put("Wolper", "Consdorf");
+		locality.put("Contern", "Contern");
+		locality.put("Medingen", "Contern");
+		locality.put("Moutfort", "Contern");
+		locality.put("Oetrange", "Contern");
+		locality.put("Dalheim", "Dalheim");
+		locality.put("Filsdorf", "Dalheim");
+		locality.put("Welfrange", "Dalheim");
+		locality.put("Diekirch", "Diekirch");
+		locality.put("Differdange", "Differdange");
+		locality.put("Lasauvage", "Differdange");
+		locality.put("Niederkorn", "Differdange");
+		locality.put("Oberkorn", "Differdange");
+		locality.put("Bettange-sur-Mess", "Dippach");
+		locality.put("Dippach", "Dippach");
+		locality.put("Schouweiler", "Dippach");
+		locality.put("Sprinkange", "Dippach");
+		locality.put("Dudelange", "Dudelange");
+		locality.put("Echternach", "Echternach");
+		locality.put("Colpach-Bas", "Ell");
+		locality.put("Colpach-Haut", "Ell");
+		locality.put("Ell", "Ell");
+		locality.put("Petit-Nobressart", "Ell");
+		locality.put("Roodt (Ell)", "Ell");
+		locality.put("Burden", "Erpeldange-sur-Sûre");
+		locality.put("Erpeldange-sur-Sûre", "Erpeldange-sur-Sûre");
+		locality.put("Ingeldorf", "Erpeldange-sur-Sûre");
+		locality.put("Esch-sur-Alzette", "Esch-sur-Alzette");
+		locality.put("Bonnal", "Esch-sur-Sûre");
+		locality.put("Dirbach", "Esch-sur-Sûre");
+		locality.put("Esch-sur-Sûre", "Esch-sur-Sûre");
+		locality.put("Eschdorf", "Esch-sur-Sûre");
+		locality.put("Heiderscheid", "Esch-sur-Sûre");
+		locality.put("Heiderscheidergrund", "Esch-sur-Sûre");
+		locality.put("Hierheck", "Esch-sur-Sûre");
+		locality.put("Insenborn", "Esch-sur-Sûre");
+		locality.put("Lultzhausen", "Esch-sur-Sûre");
+		locality.put("Merscheid", "Esch-sur-Sûre");
+		locality.put("Neunhausen", "Esch-sur-Sûre");
+		locality.put("Ringel", "Esch-sur-Sûre");
+		locality.put("Tadler", "Esch-sur-Sûre");
+		locality.put("Ettelbruck", "Ettelbruck");
+		locality.put("Warken", "Ettelbruck");
+		locality.put("Niederfeulen", "Feulen");
+		locality.put("Oberfeulen", "Feulen");
+		locality.put("Angelsberg", "Fischbach");
+		locality.put("Fischbach (Mersch)", "Fischbach");
+		locality.put("Koedange", "Fischbach");
+		locality.put("Schiltzberg", "Fischbach");
+		locality.put("Schoos", "Fischbach");
+		locality.put("Stuppicht", "Fischbach");
+		locality.put("Weyer (Junglinster)", "Fischbach");
+		locality.put("Beyren", "Flaxweiler");
+		locality.put("Flaxweiler", "Flaxweiler");
+		locality.put("Gostingen", "Flaxweiler");
+		locality.put("Niederdonven", "Flaxweiler");
+		locality.put("Oberdonven", "Flaxweiler");
+		locality.put("Aspelt", "Frisange");
+		locality.put("Frisange", "Frisange");
+		locality.put("Hellange", "Frisange");
+		locality.put("Dahlem", "Garnich");
+		locality.put("Garnich", "Garnich");
+		locality.put("Hivange", "Garnich");
+		locality.put("Kahler", "Garnich");
+		locality.put("Bockholtz (Goesdorf)", "Goesdorf");
+		locality.put("Buederscheid", "Goesdorf");
+		locality.put("Dahl", "Goesdorf");
+		locality.put("Dirbach (Goesdorf)", "Goesdorf");
+		locality.put("Goebelsmühle (Goesdorf)", "Goesdorf");
+		locality.put("Goesdorf", "Goesdorf");
+		locality.put("Masseler", "Goesdorf");
+		locality.put("Nocher", "Goesdorf");
+		locality.put("Nocher Route", "Goesdorf");
+		locality.put("Grevenmacher", "Grevenmacher");
+		locality.put("Dellen", "Grosbous");
+		locality.put("Grevels (Grosbous)", "Grosbous");
+		locality.put("Grosbous", "Grosbous");
+		locality.put("Lehrhof", "Grosbous");
+		locality.put("Heffingen", "Heffingen");
+		locality.put("Reuland", "Heffingen");
+		locality.put("Alzingen", "Hesperange");
+		locality.put("Fentange", "Hesperange");
+		locality.put("Hesperange", "Hesperange");
+		locality.put("Howald", "Hesperange");
+		locality.put("Itzig", "Hesperange");
+		locality.put("Eischen", "Hobscheid");
+		locality.put("Hobscheid", "Hobscheid");
+		locality.put("Altlinster", "Junglinster");
+		locality.put("Beidweiler", "Junglinster");
+		locality.put("Blumenthal", "Junglinster");
+		locality.put("Bourglinster", "Junglinster");
+		locality.put("Eisenborn", "Junglinster");
+		locality.put("Eschweiler", "Junglinster");
+		locality.put("Godbrange", "Junglinster");
+		locality.put("Gonderange", "Junglinster");
+		locality.put("Graulinster", "Junglinster");
+		locality.put("Imbringen", "Junglinster");
+		locality.put("Junglinster", "Junglinster");
+		locality.put("Rodenbourg", "Junglinster");
+		locality.put("Kayl", "Kayl");
+		locality.put("Tétange", "Kayl");
+		locality.put("Dondelange", "Kehlen");
+		locality.put("Kehlen", "Kehlen");
+		locality.put("Keispelt", "Kehlen");
+		locality.put("Meispelt", "Kehlen");
+		locality.put("Nospelt", "Kehlen");
+		locality.put("Olm", "Kehlen");
+		locality.put("Alscheid", "Kiischpelt");
+		locality.put("Enscherange", "Kiischpelt");
+		locality.put("Kautenbach", "Kiischpelt");
+		locality.put("Lellingen", "Kiischpelt");
+		locality.put("Merkholtz", "Kiischpelt");
+		locality.put("Pintsch", "Kiischpelt");
+		locality.put("Wilwerwiltz", "Kiischpelt");
+		locality.put("Goeblange", "Koerich");
+		locality.put("Goetzingen", "Koerich");
+		locality.put("Koerich", "Koerich");
+		locality.put("Windhof (Koerich)", "Koerich");
+		locality.put("Bridel", "Kopstal");
+		locality.put("Kopstal", "Kopstal");
+		locality.put("Bascharage", "Käerjeng");
+		locality.put("Clemency", "Käerjeng");
+		locality.put("Fingig", "Käerjeng");
+		locality.put("Hautcharage", "Käerjeng");
+		locality.put("Linger", "Käerjeng");
+		locality.put("Bavigne", "Lac de la Haute-Sûre");
+		locality.put("Harlange", "Lac de la Haute-Sûre");
+		locality.put("Kaundorf", "Lac de la Haute-Sûre");
+		locality.put("Liefrange", "Lac de la Haute-Sûre");
+		locality.put("Mecher (Haute-Sûre)", "Lac de la Haute-Sûre");
+		locality.put("Nothum", "Lac de la Haute-Sûre");
+		locality.put("Tarchamps", "Lac de la Haute-Sûre");
+		locality.put("Watrange", "Lac de la Haute-Sûre");
+		locality.put("Ernzen", "Larochette");
+		locality.put("Larochette", "Larochette");
+		locality.put("Meysembourg", "Larochette");
+		locality.put("Canach", "Lenningen");
+		locality.put("Lenningen", "Lenningen");
+		locality.put("Leudelange", "Leudelange");
+		locality.put("Gosseldange", "Lintgen");
+		locality.put("Lintgen", "Lintgen");
+		locality.put("Prettingen", "Lintgen");
+		locality.put("Asselscheuer", "Lorentzweiler");
+		locality.put("Blaschette", "Lorentzweiler");
+		locality.put("Bofferdange", "Lorentzweiler");
+		locality.put("Helmdange", "Lorentzweiler");
+		locality.put("Hunsdorf", "Lorentzweiler");
+		locality.put("Klingelscheuer", "Lorentzweiler");
+		locality.put("Lorentzweiler", "Lorentzweiler");
+		locality.put("Luxembourg", "Luxembourg");
+		locality.put("Capellen", "Mamer");
+		locality.put("Holzem", "Mamer");
+		locality.put("Mamer", "Mamer");
+		locality.put("Berbourg", "Manternach");
+		locality.put("Lellig", "Manternach");
+		locality.put("Manternach", "Manternach");
+		locality.put("Münschecker", "Manternach");
+		locality.put("Beringen", "Mersch");
+		locality.put("Essingen", "Mersch");
+		locality.put("Mersch", "Mersch");
+		locality.put("Moesdorf (Mersch)", "Mersch");
+		locality.put("Pettingen", "Mersch");
+		locality.put("Reckange (Mersch)", "Mersch");
+		locality.put("Rollingen", "Mersch");
+		locality.put("Schoenfels", "Mersch");
+		locality.put("Mertert", "Mertert");
+		locality.put("Wasserbillig", "Mertert");
+		locality.put("Mertzig", "Mertzig");
+		locality.put("Born", "Mompach");
+		locality.put("Boursdorf", "Mompach");
+		locality.put("Givenich", "Mompach");
+		locality.put("Herborn", "Mompach");
+		locality.put("Lilien", "Mompach");
+		locality.put("Moersdorf", "Mompach");
+		locality.put("Mompach", "Mompach");
+		locality.put("Bergem", "Mondercange");
+		locality.put("Foetz", "Mondercange");
+		locality.put("Mondercange", "Mondercange");
+		locality.put("Pontpierre", "Mondercange");
+		locality.put("Altwies", "Mondorf-les-Bains");
+		locality.put("Ellange", "Mondorf-les-Bains");
+		locality.put("Mondorf-les-Bains", "Mondorf-les-Bains");
+		locality.put("Ernster", "Niederanven");
+		locality.put("Hostert", "Niederanven");
+		locality.put("Niederanven", "Niederanven");
+		locality.put("Oberanven", "Niederanven");
+		locality.put("Rameldange", "Niederanven");
+		locality.put("Senningen", "Niederanven");
+		locality.put("Senningerberg", "Niederanven");
+		locality.put("Waldhof", "Niederanven");
+		locality.put("Cruchten", "Nommern");
+		locality.put("Niederglabach", "Nommern");
+		locality.put("Nommern", "Nommern");
+		locality.put("Oberglabach", "Nommern");
+		locality.put("Schrondweiler", "Nommern");
+		locality.put("Bockholtz", "Parc Hosingen");
+		locality.put("Consthum", "Parc Hosingen");
+		locality.put("Dorscheid", "Parc Hosingen");
+		locality.put("Eisenbach", "Parc Hosingen");
+		locality.put("Holzthum", "Parc Hosingen");
+		locality.put("Hoscheid", "Parc Hosingen");
+		locality.put("Hoscheid-Dickt", "Parc Hosingen");
+		locality.put("Hosingen", "Parc Hosingen");
+		locality.put("Neidhausen", "Parc Hosingen");
+		locality.put("Oberschlinder", "Parc Hosingen");
+		locality.put("Rodershausen", "Parc Hosingen");
+		locality.put("Unterschlinder", "Parc Hosingen");
+		locality.put("Wahlhausen", "Parc Hosingen");
+		locality.put("Bettborn", "Préizerdaul");
+		locality.put("Platen", "Préizerdaul");
+		locality.put("Pratz", "Préizerdaul");
+		locality.put("Reimberg", "Préizerdaul");
+		locality.put("Bivels", "Putscheid");
+		locality.put("Gralingen", "Putscheid");
+		locality.put("Merscheid (Pütscheid)", "Putscheid");
+		locality.put("Nachtmanderscheid", "Putscheid");
+		locality.put("Pütscheid", "Putscheid");
+		locality.put("Stolzembourg", "Putscheid");
+		locality.put("Weiler (Pütscheid)", "Putscheid");
+		locality.put("Lamadelaine", "Pétange");
+		locality.put("Pétange", "Pétange");
+		locality.put("Rodange", "Pétange");
+		locality.put("Arsdorf", "Rambrouch");
+		locality.put("Bigonville", "Rambrouch");
+		locality.put("Bigonville-Poteau", "Rambrouch");
+		locality.put("Bilsdorf", "Rambrouch");
+		locality.put("Eschette", "Rambrouch");
+		locality.put("Flatzbour", "Rambrouch");
+		locality.put("Folschette", "Rambrouch");
+		locality.put("Haut-Martelange", "Rambrouch");
+		locality.put("Holtz", "Rambrouch");
+		locality.put("Hostert (Rambrouch)", "Rambrouch");
+		locality.put("Koetschette", "Rambrouch");
+		locality.put("Perlé", "Rambrouch");
+		locality.put("Rambrouch", "Rambrouch");
+		locality.put("Riesenhof", "Rambrouch");
+		locality.put("Rombach-Martelange", "Rambrouch");
+		locality.put("Wolwelange", "Rambrouch");
+		locality.put("Ehlange", "Reckange-sur-Mess");
+		locality.put("Limpach", "Reckange-sur-Mess");
+		locality.put("Pissange", "Reckange-sur-Mess");
+		locality.put("Reckange-sur-Mess", "Reckange-sur-Mess");
+		locality.put("Roedgen", "Reckange-sur-Mess");
+		locality.put("Wickrange", "Reckange-sur-Mess");
+		locality.put("Eltz", "Redange/Attert");
+		locality.put("Lannen", "Redange/Attert");
+		locality.put("Nagem", "Redange/Attert");
+		locality.put("Niederpallen", "Redange/Attert");
+		locality.put("Ospern", "Redange/Attert");
+		locality.put("Redange/Attert", "Redange/Attert");
+		locality.put("Reichlange", "Redange/Attert");
+		locality.put("Bigelbach", "Reisdorf");
+		locality.put("Hoesdorf", "Reisdorf");
+		locality.put("Reisdorf", "Reisdorf");
+		locality.put("Wallendorf-Pont", "Reisdorf");
+		locality.put("Remich", "Remich");
+		locality.put("Berchem", "Roeser");
+		locality.put("Bivange", "Roeser");
+		locality.put("Crauthem", "Roeser");
+		locality.put("Kockelscheuer (Roeser)", "Roeser");
+		locality.put("Livange", "Roeser");
+		locality.put("Peppange", "Roeser");
+		locality.put("Roeser", "Roeser");
+		locality.put("Dickweiler", "Rosport");
+		locality.put("Girst", "Rosport");
+		locality.put("Girsterklaus", "Rosport");
+		locality.put("Hinkel", "Rosport");
+		locality.put("Osweiler", "Rosport");
+		locality.put("Rosport", "Rosport");
+		locality.put("Steinheim", "Rosport");
+		locality.put("Rumelange", "Rumelange");
+		locality.put("Calmus", "Saeul");
+		locality.put("Ehner", "Saeul");
+		locality.put("Kapweiler", "Saeul");
+		locality.put("Saeul", "Saeul");
+		locality.put("Schwebach", "Saeul");
+		locality.put("Findel", "Sandweiler");
+		locality.put("Sandweiler", "Sandweiler");
+		locality.put("Belvaux", "Sanem");
+		locality.put("Ehlerange", "Sanem");
+		locality.put("Sanem", "Sanem");
+		locality.put("Soleuvre", "Sanem");
+		locality.put("Bech-Kleinmacher", "Schengen");
+		locality.put("Burmerange", "Schengen");
+		locality.put("Elvange (Schengen)", "Schengen");
+		locality.put("Emerange", "Schengen");
+		locality.put("Remerschen", "Schengen");
+		locality.put("Schengen", "Schengen");
+		locality.put("Schwebsingen", "Schengen");
+		locality.put("Wellenstein", "Schengen");
+		locality.put("Wintrange", "Schengen");
+		locality.put("Colmar-Pont", "Schieren");
+		locality.put("Schieren", "Schieren");
+		locality.put("Schifflange", "Schifflange");
+		locality.put("Münsbach", "Schuttrange");
+		locality.put("Neuhaeusgen", "Schuttrange");
+		locality.put("Schrassig", "Schuttrange");
+		locality.put("Schuttrange", "Schuttrange");
+		locality.put("Uebersyren", "Schuttrange");
+		locality.put("Greisch", "Septfontaines");
+		locality.put("Leesbach", "Septfontaines");
+		locality.put("Roodt (Septfontaines)", "Septfontaines");
+		locality.put("Septfontaines", "Septfontaines");
+		locality.put("Simmerfarm", "Septfontaines");
+		locality.put("Simmerschmelz", "Septfontaines");
+		locality.put("Greiveldange", "Stadtbredimus");
+		locality.put("Huettermuehle", "Stadtbredimus");
+		locality.put("Stadtbredimus", "Stadtbredimus");
+		locality.put("Grass", "Steinfort");
+		locality.put("Hagen", "Steinfort");
+		locality.put("Kleinbettingen", "Steinfort");
+		locality.put("Steinfort", "Steinfort");
+		locality.put("Heisdorf", "Steinsel");
+		locality.put("Mullendorf", "Steinsel");
+		locality.put("Steinsel", "Steinsel");
+		locality.put("Strassen", "Strassen");
+		locality.put("Bastendorf", "Tandel");
+		locality.put("Bettel", "Tandel");
+		locality.put("Brandenbourg", "Tandel");
+		locality.put("Fouhren", "Tandel");
+		locality.put("Hoscheidterhof", "Tandel");
+		locality.put("Këppenhaff", "Tandel");
+		locality.put("Landscheid", "Tandel");
+		locality.put("Longsdorf", "Tandel");
+		locality.put("Seltz", "Tandel");
+		locality.put("Tandel", "Tandel");
+		locality.put("Walsdorf", "Tandel");
+		locality.put("Basbellain", "Troisvierges");
+		locality.put("Biwisch", "Troisvierges");
+		locality.put("Drinklange", "Troisvierges");
+		locality.put("Goedange", "Troisvierges");
+		locality.put("Hautbellain", "Troisvierges");
+		locality.put("Huldange", "Troisvierges");
+		locality.put("Troisvierges", "Troisvierges");
+		locality.put("Wilwerdange", "Troisvierges");
+		locality.put("Ansembourg", "Tuntange");
+		locality.put("Bour", "Tuntange");
+		locality.put("Hollenfels", "Tuntange");
+		locality.put("Kuelbecherhaff", "Tuntange");
+		locality.put("Marienthal", "Tuntange");
+		locality.put("Tuntange", "Tuntange");
+		locality.put("Everlange", "Useldange");
+		locality.put("Rippweiler", "Useldange");
+		locality.put("Schandel", "Useldange");
+		locality.put("Useldange", "Useldange");
+		locality.put("Eppeldorf", "Vallée de l'Ernz");
+		locality.put("Ermsdorf", "Vallée de l'Ernz");
+		locality.put("Folkendange", "Vallée de l'Ernz");
+		locality.put("Keiwelbach", "Vallée de l'Ernz");
+		locality.put("Medernach", "Vallée de l'Ernz");
+		locality.put("Savelborn", "Vallée de l'Ernz");
+		locality.put("Stegen", "Vallée de l'Ernz");
+		locality.put("Vianden", "Vianden");
+		locality.put("Michelbouch", "Vichten");
+		locality.put("Vichten", "Vichten");
+		locality.put("Brattert", "Wahl");
+		locality.put("Buschrodt", "Wahl");
+		locality.put("Grevels", "Wahl");
+		locality.put("Heispelt", "Wahl");
+		locality.put("Kuborn", "Wahl");
+		locality.put("Rindschleiden", "Wahl");
+		locality.put("Wahl", "Wahl");
+		locality.put("Christnach", "Waldbillig");
+		locality.put("Freckeisen", "Waldbillig");
+		locality.put("Grundhof", "Waldbillig");
+		locality.put("Haller", "Waldbillig");
+		locality.put("Mullerthal", "Waldbillig");
+		locality.put("Savelborn (Waldbillig)", "Waldbillig");
+		locality.put("Waldbillig", "Waldbillig");
+		locality.put("Ersange", "Waldbredimus");
+		locality.put("Roedt", "Waldbredimus");
+		locality.put("Trintange", "Waldbredimus");
+		locality.put("Waldbredimus", "Waldbredimus");
+		locality.put("Bereldange", "Walferdange");
+		locality.put("Helmsange", "Walferdange");
+		locality.put("Walferdange", "Walferdange");
+		locality.put("Hassel", "Weiler-la-Tour");
+		locality.put("Syren", "Weiler-la-Tour");
+		locality.put("Weiler-la-Tour", "Weiler-la-Tour");
+		locality.put("Beiler", "Weiswampach");
+		locality.put("Binsfeld", "Weiswampach");
+		locality.put("Breidfeld", "Weiswampach");
+		locality.put("Holler", "Weiswampach");
+		locality.put("Hollermühle", "Weiswampach");
+		locality.put("Kaesfurt (Beiler)", "Weiswampach");
+		locality.put("Kleemühle", "Weiswampach");
+		locality.put("Lausdorn (Weiswampach)", "Weiswampach");
+		locality.put("Leithum", "Weiswampach");
+		locality.put("Maulusmühle (Weiswamp.)", "Weiswampach");
+		locality.put("Rossmühle", "Weiswampach");
+		locality.put("Weiswampach", "Weiswampach");
+		locality.put("Wemperhardt", "Weiswampach");
+		locality.put("Erpeldange (Eschweiler)", "Wiltz");
+		locality.put("Eschweiler (Wiltz)", "Wiltz");
+		locality.put("Knaphoscheid", "Wiltz");
+		locality.put("Roullingen", "Wiltz");
+		locality.put("Selscheid", "Wiltz");
+		locality.put("Weidingen", "Wiltz");
+		locality.put("Wiltz", "Wiltz");
+		locality.put("Allerborn", "Wincrange");
+		locality.put("Asselborn", "Wincrange");
+		locality.put("Boevange", "Wincrange");
+		locality.put("Boxhorn", "Wincrange");
+		locality.put("Brachtenbach", "Wincrange");
+		locality.put("Cinqfontaines", "Wincrange");
+		locality.put("Crendal", "Wincrange");
+		locality.put("Deiffelt", "Wincrange");
+		locality.put("Derenbach", "Wincrange");
+		locality.put("Doennange", "Wincrange");
+		locality.put("Emeschbach Asselborn", "Wincrange");
+		locality.put("Hachiville", "Wincrange");
+		locality.put("Hamiville", "Wincrange");
+		locality.put("Hinterhassel", "Wincrange");
+		locality.put("Hoffelt", "Wincrange");
+		locality.put("Lentzweiler", "Wincrange");
+		locality.put("Lullange", "Wincrange");
+		locality.put("Maulusmuehle", "Wincrange");
+		locality.put("Niederwampach", "Wincrange");
+		locality.put("Oberwampach", "Wincrange");
+		locality.put("Rumlange", "Wincrange");
+		locality.put("Sassel", "Wincrange");
+		locality.put("Schimpach", "Wincrange");
+		locality.put("Stockem", "Wincrange");
+		locality.put("Troine", "Wincrange");
+		locality.put("Troine-Route", "Wincrange");
+		locality.put("Weiler", "Wincrange");
+		locality.put("Wincrange", "Wincrange");
+		locality.put("Berlé", "Winseler");
+		locality.put("Doncols", "Winseler");
+		locality.put("Gruemelscheid", "Winseler");
+		locality.put("Noertrange", "Winseler");
+		locality.put("Pommerloch", "Winseler");
+		locality.put("Schleif", "Winseler");
+		locality.put("Sonlez", "Winseler");
+		locality.put("Winseler", "Winseler");
+		locality.put("Ahn", "Wormeldange");
+		locality.put("Dreiborn", "Wormeldange");
+		locality.put("Ehnen", "Wormeldange");
+		locality.put("Kapenacker", "Wormeldange");
+		locality.put("Machtum", "Wormeldange");
+		locality.put("Wormeldange", "Wormeldange");
+		locality.put("Wormeldange-Haut", "Wormeldange");
+		
+		if(locality.get(subareaname) != null)
+			return locality.get(subareaname);
+		else
+			return "";
+	}
+
+
 	private static void Importlog(String protocolType, String shortReason, String description) {
 		PrintWriter logfile = null;
 		String protocolfilename = configuration.application_datadir + File.separator + "import-" + protocolType + ".log";
@@ -96,6 +663,78 @@ public class import_stadtstrassen {
 		}
 	}
 
+
+	static long osmnodeid = -1;
+	private static void OSMoutput(String parameterQuellSrid, String headercolumns[], String actualcolumns[]) {
+		PrintWriter osmfile = null;
+		String protocolfilename = configuration.application_datadir + File.separator + "import" + ".osm";
+		
+		String sourcesrid = parameterQuellSrid;
+		Double sourcecoordx = 0.0D;
+		Double sourcecoordy = 0.0D;
+		for(Integer columnindex = 0; columnindex < headercolumns.length; columnindex++) {
+			if (headercolumns[columnindex].toLowerCase().equals("koordindatensystem") ||
+				headercolumns[columnindex].toLowerCase().equals("epsg") ||
+				headercolumns[columnindex].toLowerCase().equals("srid")) {
+				sourcesrid = actualcolumns[columnindex];
+			}
+			if (headercolumns[columnindex].toLowerCase().equals("lon") ||
+				headercolumns[columnindex].toLowerCase().equals("rw") ||
+				headercolumns[columnindex].toLowerCase().equals("laengengrad") ||
+				headercolumns[columnindex].toLowerCase().equals("längengrad")) {
+				if(!actualcolumns[columnindex].equals(""))
+					sourcecoordx = Double.parseDouble(actualcolumns[columnindex].replace(",","."));
+			}
+			if (headercolumns[columnindex].toLowerCase().equals("lat") ||
+				headercolumns[columnindex].toLowerCase().equals("hw") ||
+				headercolumns[columnindex].toLowerCase().equals("breitengrad")) {
+				if(!actualcolumns[columnindex].equals(""))
+					sourcecoordy = Double.parseDouble(actualcolumns[columnindex].replace(",","."));
+			}
+		}
+		if((sourcecoordx == 0.0D) || (sourcecoordy == 0.0D))
+			return;
+
+		String outputtext = "";
+		try {
+			
+			String selectLonLatSql = "SELECT ST_X(ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326)) as lon,"
+				+ " ST_Y(ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326)) as lat;";
+			PreparedStatement selectLonLatStmt = conHausnummern.prepareStatement(selectLonLatSql);
+			selectLonLatStmt.setDouble(1, sourcecoordx);
+			selectLonLatStmt.setDouble(2, sourcecoordy);
+			selectLonLatStmt.setInt(3, Integer.parseInt(sourcesrid));
+			selectLonLatStmt.setDouble(4, sourcecoordx);
+			selectLonLatStmt.setDouble(5, sourcecoordy);
+			selectLonLatStmt.setInt(6, Integer.parseInt(sourcesrid));
+			ResultSet selectLonLatRS = selectLonLatStmt.executeQuery();
+			if (selectLonLatRS.next()) {
+				Double lon = selectLonLatRS.getDouble("lon");
+				Double lat = selectLonLatRS.getDouble("lat");
+
+				osmfile = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+						new FileOutputStream(protocolfilename, true),StandardCharsets.UTF_8)));
+				outputtext += "<node id=\"" + osmnodeid-- + "\" action=\"modify\" visible=\"true\" lat=\"" + lat + "\" lon=\"" + lon + "\">\n";
+				for(Integer columnindex = 0; columnindex < actualcolumns.length; columnindex++) {
+					if(!headercolumns[columnindex].equals("") && !actualcolumns[columnindex].equals("")) {
+						outputtext += "<tag k=\"" + headercolumns[columnindex] +  "\" v=\"" + actualcolumns[columnindex] + "\" />\n";
+					}
+				}
+				outputtext += "</node>\n";
+				osmfile.println(outputtext);
+				osmfile.close();
+			}
+			
+		} catch (IOException ioerror) {
+			System.out.println("ERROR: couldn't open file to write, filename was ===" + protocolfilename + "===");
+			ioerror.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NumberFormatException numbexception) {
+			numbexception.printStackTrace();
+		}
+	}
 	
 	private static ArrayList<String> uppercaselist = new ArrayList<>();
 	private static ArrayList<String> lowercaselist = new ArrayList<>();
@@ -426,6 +1065,7 @@ public class import_stadtstrassen {
 				double laengengrad = 0f;
 				double breitengrad = 0f;
 				boolean addedHousenumber = false;
+				String[] kopfspalten = null;
 
 				String subid = "-1";
 				while ((dateizeile = filereader.readLine()) != null) {
@@ -439,7 +1079,7 @@ public class import_stadtstrassen {
 					if (dateizeile.indexOf("#") == 0) {
 						if (zeilenr == 1L) {
 							dateizeile = dateizeile.substring(1);
-							String[] kopfspalten = dateizeile.split(fieldSeparator);
+							kopfspalten = dateizeile.split(fieldSeparator);
 							for (int spaltei = 0; spaltei < kopfspalten.length; spaltei++) {
 								if(		kopfspalten[spaltei].toLowerCase().equals("stadt")
 									||	kopfspalten[spaltei].toLowerCase().equals("addr:city")
@@ -547,6 +1187,8 @@ public class import_stadtstrassen {
 						continue;
 					}
 
+					OSMoutput(parameterQuellSrid, kopfspalten, spalten);
+
 					stadt_zuletzt = stadt;
 					stadt = "";
 					if((spalten.length > spaltenindexStadt) && (spaltenindexStadt != -1)) {
@@ -648,6 +1290,23 @@ public class import_stadtstrassen {
 						}
 					}
 
+					if((parameterLand.equals("Luxembourg")) && stadt.equals("") && !subid.equals("")) {
+						stadt = getLuxembourgMunicipalityforSubarea(subid);
+						if( (! stadt.equals(stadt_zuletzt)) && (! stadt_zuletzt.equals(""))) {
+							if(housenumberlist.count() > 0) {
+								housenumberlist.stadt = stadt_zuletzt;
+								if(! ags_zuletzt.equals(""))
+									housenumberlist.stadt_id = ags_zuletzt;
+								if(geocoordindatesavailable)
+									housenumberlist.officialgeocoordinates = "y";
+								else
+									housenumberlist.officialgeocoordinates = "n";
+								housenumberlist.storeToDB();
+								housenumberlist.clear();
+							}
+						}
+					}
+					
 					quellSrid = parameterQuellSrid;
 					if ((spalten.length > spaltenindexQuellSrid) && (spaltenindexQuellSrid != -1)) {
 						quellSrid = spalten[spaltenindexQuellSrid];
