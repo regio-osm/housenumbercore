@@ -1101,6 +1101,103 @@ CREATE OR REPLACE VIEW theoeval201604
   END  AS theo_adressenabdeckung
   FROM theoevaluations where tstamp > '2016-07-01' and tstamp < '2016-07-03';
 
+CREATE OR REPLACE VIEW theoeval201607
+  AS SELECT 
+  id, land, stadt, gemeinde_id, flaechekm2, bevoelkerungszahl, gliederungstadtland, anzahl_osmadressen, 
+  anzahl_osmadressennodes, anzahl_osmadressenways, anzahl_osmadressenrels, 
+  (anzahl_osmadressennodesunvollstaendig + anzahl_osmadressenwaysunvollstaendig + anzahl_osmadressenrelsunvollstaendig) AS anzahl_osmadressenunvollstaendig, 
+  anzahl_osmadressennodesunvollstaendig, anzahl_osmadressenwaysunvollstaendig, anzahl_osmadressenrelsunvollstaendig, 
+  tstamp, osmdb_tstamp, 
+   anzahl_nodes_addrstreet_treffer, anzahl_ways_addrstreet_treffer, anzahl_polygons_addrstreet_treffer,
+   (anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer) AS anzahl_osmadressen_addrstreet,
+  anzahl_nodes_associatedstreet_treffer, anzahl_ways_associatedstreet_treffer, anzahl_polygons_associatedstreet_treffer,
+  (anzahl_nodes_associatedstreet_treffer + anzahl_ways_associatedstreet_treffer + anzahl_polygons_associatedstreet_treffer) AS anzahl_osmadressen_associatedstreet,
+  anzahl_osmadressenplaces, polygon, 
+  CASE WHEN anzahl_osmadressen = 0 THEN 0
+      ELSE 100.0*(anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer)/anzahl_osmadressen
+  END  AS anzahl_osmadressen_addrstreetanteil, 
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN round(bevoelkerungszahl * 1.052178115
+ / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_anzahl_adressen,
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_adressenabdeckung
+  FROM theoevaluations where tstamp > '2016-08-01' and tstamp < '2016-08-03';
+
+CREATE OR REPLACE VIEW theoeval201608
+  AS SELECT 
+  id, land, stadt, gemeinde_id, flaechekm2, bevoelkerungszahl, gliederungstadtland, anzahl_osmadressen, 
+  anzahl_osmadressennodes, anzahl_osmadressenways, anzahl_osmadressenrels, 
+  (anzahl_osmadressennodesunvollstaendig + anzahl_osmadressenwaysunvollstaendig + anzahl_osmadressenrelsunvollstaendig) AS anzahl_osmadressenunvollstaendig, 
+  anzahl_osmadressennodesunvollstaendig, anzahl_osmadressenwaysunvollstaendig, anzahl_osmadressenrelsunvollstaendig, 
+  tstamp, osmdb_tstamp, 
+   anzahl_nodes_addrstreet_treffer, anzahl_ways_addrstreet_treffer, anzahl_polygons_addrstreet_treffer,
+   (anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer) AS anzahl_osmadressen_addrstreet,
+  anzahl_nodes_associatedstreet_treffer, anzahl_ways_associatedstreet_treffer, anzahl_polygons_associatedstreet_treffer,
+  (anzahl_nodes_associatedstreet_treffer + anzahl_ways_associatedstreet_treffer + anzahl_polygons_associatedstreet_treffer) AS anzahl_osmadressen_associatedstreet,
+  anzahl_osmadressenplaces, polygon, 
+  CASE WHEN anzahl_osmadressen = 0 THEN 0
+      ELSE 100.0*(anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer)/anzahl_osmadressen
+  END  AS anzahl_osmadressen_addrstreetanteil, 
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN round(bevoelkerungszahl * 1.052178115
+ / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_anzahl_adressen,
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_adressenabdeckung
+  FROM theoevaluations where tstamp > '2016-09-01' and tstamp < '2016-09-05';
+
+
+CREATE OR REPLACE VIEW theoeval201609
+  AS SELECT 
+  id, land, stadt, gemeinde_id, flaechekm2, bevoelkerungszahl, gliederungstadtland, anzahl_osmadressen, 
+  anzahl_osmadressennodes, anzahl_osmadressenways, anzahl_osmadressenrels, 
+  (anzahl_osmadressennodesunvollstaendig + anzahl_osmadressenwaysunvollstaendig + anzahl_osmadressenrelsunvollstaendig) AS anzahl_osmadressenunvollstaendig, 
+  anzahl_osmadressennodesunvollstaendig, anzahl_osmadressenwaysunvollstaendig, anzahl_osmadressenrelsunvollstaendig, 
+  tstamp, osmdb_tstamp, 
+   anzahl_nodes_addrstreet_treffer, anzahl_ways_addrstreet_treffer, anzahl_polygons_addrstreet_treffer,
+   (anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer) AS anzahl_osmadressen_addrstreet,
+  anzahl_nodes_associatedstreet_treffer, anzahl_ways_associatedstreet_treffer, anzahl_polygons_associatedstreet_treffer,
+  (anzahl_nodes_associatedstreet_treffer + anzahl_ways_associatedstreet_treffer + anzahl_polygons_associatedstreet_treffer) AS anzahl_osmadressen_associatedstreet,
+  anzahl_osmadressenplaces, polygon, 
+  CASE WHEN anzahl_osmadressen = 0 THEN 0
+      ELSE 100.0*(anzahl_nodes_addrstreet_treffer + anzahl_ways_addrstreet_treffer + anzahl_polygons_addrstreet_treffer)/anzahl_osmadressen
+  END  AS anzahl_osmadressen_addrstreetanteil, 
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN round(bevoelkerungszahl * 1.052178115
+ / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN round(bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_anzahl_adressen,
+  CASE   WHEN flaechekm2 > 0 AND bevoelkerungszahl > 0 AND bevoelkerungszahl <= 5000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000920645 * bevoelkerungszahl/flaechekm2 + 3.002091115))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 5000 AND bevoelkerungszahl <= 20000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000509945 * bevoelkerungszahl/flaechekm2 + 3.086196323))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 20000 AND bevoelkerungszahl <= 100000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000865691 * bevoelkerungszahl/flaechekm2 + 3.490431037))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 100000 AND bevoelkerungszahl <= 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.000728235 * bevoelkerungszahl/flaechekm2 + 3.394332878))
+       WHEN flaechekm2 > 0 AND bevoelkerungszahl > 250000 THEN 100 * anzahl_osmadressen / (bevoelkerungszahl * 1.052178115 / (0.001400991 * bevoelkerungszahl/flaechekm2 + 3.46995551))
+         ELSE 0
+  END  AS theo_adressenabdeckung
+  FROM theoevaluations where tstamp > '2016-10-01' and tstamp < '2016-10-05';
+
   // TODOMONTHLY
 
 
@@ -1498,6 +1595,63 @@ CREATE OR REPLACE VIEW theoeval201606diff201605
   to_char(te1.tstamp, 'DD.MM.YYYY HH24:MI') AS alte_tstamp,
   te2.polygon as polygon
   FROM theoeval201606 AS te2, theoeval201605 AS te1
+  WHERE te2.gemeinde_id = te1.gemeinde_id
+  AND te2.land = te1.land
+  AND te2.land = 'Bundesrepublik Deutschland';
+
+CREATE OR REPLACE VIEW theoeval201607diff201606
+  AS SELECT 
+  te2.land AS land, te2.stadt AS stadt,
+  te2.gemeinde_id AS gemeinde_id, te2.flaechekm2 AS flaechekm2, te2.bevoelkerungszahl AS bevoelkerungszahl, te2.gliederungstadtland AS gliederungstadtland,
+  (te2.anzahl_osmadressen - te1.anzahl_osmadressen) AS diff_anzahl_osmadressen,
+  te2.anzahl_osmadressen AS neue_anzahl_osmadressen,
+  te1.anzahl_osmadressen AS alte_anzahl_osmadressen,
+  te2.theo_anzahl_adressen AS neue_theo_anzahl_adressen,
+  te1.theo_anzahl_adressen AS alte_theo_anzahl_adressen,
+  round(CAST(te2.theo_adressenabdeckung AS NUMERIC),1) AS neue_theo_adressenabdeckung,
+  round(CAST(te1.theo_adressenabdeckung AS NUMERIC),1) AS alte_theo_adressenabdeckung,
+  to_char(te2.tstamp, 'DD.MM.YYYY HH24:MI') AS neue_tstamp,
+  to_char(te1.tstamp, 'DD.MM.YYYY HH24:MI') AS alte_tstamp,
+  te2.polygon as polygon
+  FROM theoeval201607 AS te2, theoeval201606 AS te1
+  WHERE te2.gemeinde_id = te1.gemeinde_id
+  AND te2.land = te1.land
+  AND te2.land = 'Bundesrepublik Deutschland';
+
+CREATE OR REPLACE VIEW theoeval201608diff201607
+  AS SELECT 
+  te2.land AS land, te2.stadt AS stadt,
+  te2.gemeinde_id AS gemeinde_id, te2.flaechekm2 AS flaechekm2, te2.bevoelkerungszahl AS bevoelkerungszahl, te2.gliederungstadtland AS gliederungstadtland,
+  (te2.anzahl_osmadressen - te1.anzahl_osmadressen) AS diff_anzahl_osmadressen,
+  te2.anzahl_osmadressen AS neue_anzahl_osmadressen,
+  te1.anzahl_osmadressen AS alte_anzahl_osmadressen,
+  te2.theo_anzahl_adressen AS neue_theo_anzahl_adressen,
+  te1.theo_anzahl_adressen AS alte_theo_anzahl_adressen,
+  round(CAST(te2.theo_adressenabdeckung AS NUMERIC),1) AS neue_theo_adressenabdeckung,
+  round(CAST(te1.theo_adressenabdeckung AS NUMERIC),1) AS alte_theo_adressenabdeckung,
+  to_char(te2.tstamp, 'DD.MM.YYYY HH24:MI') AS neue_tstamp,
+  to_char(te1.tstamp, 'DD.MM.YYYY HH24:MI') AS alte_tstamp,
+  te2.polygon as polygon
+  FROM theoeval201608 AS te2, theoeval201607 AS te1
+  WHERE te2.gemeinde_id = te1.gemeinde_id
+  AND te2.land = te1.land
+  AND te2.land = 'Bundesrepublik Deutschland';
+
+CREATE OR REPLACE VIEW theoeval201609diff201608
+  AS SELECT 
+  te2.land AS land, te2.stadt AS stadt,
+  te2.gemeinde_id AS gemeinde_id, te2.flaechekm2 AS flaechekm2, te2.bevoelkerungszahl AS bevoelkerungszahl, te2.gliederungstadtland AS gliederungstadtland,
+  (te2.anzahl_osmadressen - te1.anzahl_osmadressen) AS diff_anzahl_osmadressen,
+  te2.anzahl_osmadressen AS neue_anzahl_osmadressen,
+  te1.anzahl_osmadressen AS alte_anzahl_osmadressen,
+  te2.theo_anzahl_adressen AS neue_theo_anzahl_adressen,
+  te1.theo_anzahl_adressen AS alte_theo_anzahl_adressen,
+  round(CAST(te2.theo_adressenabdeckung AS NUMERIC),1) AS neue_theo_adressenabdeckung,
+  round(CAST(te1.theo_adressenabdeckung AS NUMERIC),1) AS alte_theo_adressenabdeckung,
+  to_char(te2.tstamp, 'DD.MM.YYYY HH24:MI') AS neue_tstamp,
+  to_char(te1.tstamp, 'DD.MM.YYYY HH24:MI') AS alte_tstamp,
+  te2.polygon as polygon
+  FROM theoeval201609 AS te2, theoeval201608 AS te1
   WHERE te2.gemeinde_id = te1.gemeinde_id
   AND te2.land = te1.land
   AND te2.land = 'Bundesrepublik Deutschland';
