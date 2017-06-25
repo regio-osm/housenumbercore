@@ -795,6 +795,7 @@ public class import_stadtstrassen {
 			System.out.println("-streetidfile filename with street-id => streetname, if in main -datei file is only street-id, not the street name itself: Column 1 has fix id, Column 2 has fix streetname, file is UTF-8, text-format and tab-separated");
 			System.out.println("-hausnummeradditionseparator zeichen");
 			System.out.println("-hausnummeradditionseparator2 zeichen");
+			System.out.println("-feldseparator zeichen");
 			System.out.print("-subgebieteaktiv ja|nein (default nein)");
 			System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
 			System.out.println("");
@@ -890,6 +891,11 @@ public class import_stadtstrassen {
 					}
 					argsOkCount += 2;
 				}
+				if (args[argsi].equals("-feldseparator")) {
+					fieldSeparator = args[argsi + 1];
+					System.out.println("Info: explizit Feldseparator aktiviert ===" + fieldSeparator + "===");
+					argsOkCount += 2;
+				}				
 			}
 			if (argsOkCount != args.length) {
 				System.out.println("ERROR: not all programm parameters were valid, STOP");
@@ -1081,39 +1087,43 @@ public class import_stadtstrassen {
 							dateizeile = dateizeile.substring(1);
 							kopfspalten = dateizeile.split(fieldSeparator);
 							for (int spaltei = 0; spaltei < kopfspalten.length; spaltei++) {
-								if(		kopfspalten[spaltei].toLowerCase().equals("stadt")
-									||	kopfspalten[spaltei].toLowerCase().equals("addr:city")
-									||	kopfspalten[spaltei].toLowerCase().equals("gemeinde")) {
+								if(	kopfspalten[spaltei].toLowerCase().equals("stadt") || 
+									kopfspalten[spaltei].toLowerCase().equals("addr:city") ||
+									kopfspalten[spaltei].toLowerCase().equals("gemeinde") ||
+									kopfspalten[spaltei].toLowerCase().equals("commune")) {
 									spaltenindexStadt = spaltei;
 								}
-								if(		kopfspalten[spaltei].toLowerCase().equals("stadtid")
-									||	kopfspalten[spaltei].toLowerCase().equals("gemeindeid")
-									||	kopfspalten[spaltei].toLowerCase().equals("gemeinde_id")
-									||	kopfspalten[spaltei].toLowerCase().equals("gemeinde-id")) {
+								if(	kopfspalten[spaltei].toLowerCase().equals("stadtid") ||
+									kopfspalten[spaltei].toLowerCase().equals("gemeindeid") ||
+									kopfspalten[spaltei].toLowerCase().equals("gemeinde_id") ||
+									kopfspalten[spaltei].toLowerCase().equals("gemeinde-id")) {
 									spaltenindexAgs = spaltei;
 								}
-								if (	kopfspalten[spaltei].toLowerCase().equals("straße")
-									||	kopfspalten[spaltei].toLowerCase().equals("strasse")) {
+								if (kopfspalten[spaltei].toLowerCase().equals("straße") ||
+									kopfspalten[spaltei].toLowerCase().equals("strasse") ||
+									kopfspalten[spaltei].toLowerCase().equals("rue")) {
 									spaltenindexStrasse = spaltei;
 								}
-								if (	kopfspalten[spaltei].toLowerCase().equals("straße-id")
-									||	kopfspalten[spaltei].toLowerCase().equals("straßeid")
-									||	kopfspalten[spaltei].toLowerCase().equals("strasseid")
-									||	kopfspalten[spaltei].toLowerCase().equals("strasse-id")) {
-										spaltenindexStrasseId = spaltei;
+								if (kopfspalten[spaltei].toLowerCase().equals("straße-id") ||
+									kopfspalten[spaltei].toLowerCase().equals("straßeid") ||
+									kopfspalten[spaltei].toLowerCase().equals("strasseid") ||
+									kopfspalten[spaltei].toLowerCase().equals("strasse-id") ||
+									kopfspalten[spaltei].toLowerCase().equals("id_caclr_rue")) {
+									spaltenindexStrasseId = spaltei;
 								}
-								if (	kopfspalten[spaltei].toLowerCase().equals("straßeupper")
-									||	kopfspalten[spaltei].toLowerCase().equals("strasseupper")
-									||	kopfspalten[spaltei].toLowerCase().equals("strasse")) {
-										spaltenindexStrasse = spaltei;
-										strasseninhaltschreibweise = "upper";
+								if (kopfspalten[spaltei].toLowerCase().equals("straßeupper") ||
+									kopfspalten[spaltei].toLowerCase().equals("strasseupper")) {
+									spaltenindexStrasse = spaltei;
+									strasseninhaltschreibweise = "upper";
 								}
-								if (	kopfspalten[spaltei].toLowerCase().equals("postcode")
-									||	kopfspalten[spaltei].toLowerCase().equals("plz")
-									||	kopfspalten[spaltei].toLowerCase().equals("postleitzahl")) {
+								if (kopfspalten[spaltei].toLowerCase().equals("postcode") ||
+									kopfspalten[spaltei].toLowerCase().equals("plz") ||
+									kopfspalten[spaltei].toLowerCase().equals("postleitzahl") ||
+									kopfspalten[spaltei].toLowerCase().equals("code_postal")) {
 									spaltenindexPostcode = spaltei;
 								}
-								if (kopfspalten[spaltei].toLowerCase().equals("hausnummer")) {
+								if (kopfspalten[spaltei].toLowerCase().equals("hausnummer") ||
+									kopfspalten[spaltei].toLowerCase().equals("numero")) {
 									spaltenindexHausnummer = spaltei;
 								}
 								if(		(kopfspalten[spaltei].toLowerCase().equals("hausnummerzusatz"))
@@ -1136,17 +1146,20 @@ public class import_stadtstrassen {
 								if (kopfspalten[spaltei].toLowerCase().equals("lon") ||
 									kopfspalten[spaltei].toLowerCase().equals("rw") ||
 									kopfspalten[spaltei].toLowerCase().equals("laengengrad") ||
-									kopfspalten[spaltei].toLowerCase().equals("längengrad")) {
+									kopfspalten[spaltei].toLowerCase().equals("längengrad") ||
+									kopfspalten[spaltei].toLowerCase().equals("lon_wgs84")) {
 									spaltenindexLaengengrad = spaltei;
 								}
 								if (kopfspalten[spaltei].toLowerCase().equals("lat") ||
 									kopfspalten[spaltei].toLowerCase().equals("hw") ||
-									kopfspalten[spaltei].toLowerCase().equals("breitengrad")) {
+									kopfspalten[spaltei].toLowerCase().equals("breitengrad") ||
+									kopfspalten[spaltei].toLowerCase().equals("lat_wgs84")) {
 									spaltenindexBreitengrad = spaltei;
 								}
-								if(		kopfspalten[spaltei].toLowerCase().equals("subid")
-									|| 	kopfspalten[spaltei].toLowerCase().equals("sub_id")
-									|| 	kopfspalten[spaltei].toLowerCase().equals("sub-id")) {
+								if(	kopfspalten[spaltei].toLowerCase().equals("subid") ||
+									kopfspalten[spaltei].toLowerCase().equals("sub_id") ||
+									kopfspalten[spaltei].toLowerCase().equals("sub-id") ||
+									kopfspalten[spaltei].toLowerCase().equals("localite")) {
 									spaltenindexSubid = spaltei;
 								}
 							}
@@ -1179,7 +1192,7 @@ public class import_stadtstrassen {
 
 					System.out.println("Dateizeile # " + zeilenr + " ===" + dateizeile + "===");
 
-					String[] spalten = dateizeile.split("\t");
+					String[] spalten = dateizeile.split(fieldSeparator);
 
 						// Zeile mit falscher Spaltenanzahl überspringen
 					if (spalten.length < FILECOLUMNMINLENGTH) {
