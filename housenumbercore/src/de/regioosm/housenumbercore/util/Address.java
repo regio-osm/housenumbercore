@@ -1,4 +1,4 @@
-package de.regioosm.housenumbercore;
+package de.regioosm.housenumbercore.util;
 
 import java.util.Map;
 import java.util.TreeMap;

@@ -40,8 +40,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
-import de.regioosm.housenumbercore.Address;
 import de.regioosm.housenumbercore.Reference;
+import de.regioosm.housenumbercore.util.Address;
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.ImportHausnummerliste;
 
