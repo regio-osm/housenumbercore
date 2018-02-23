@@ -9,14 +9,27 @@ import java.util.List;
 
 import de.regioosm.housenumbercore.util.OSMSegment.OSMType;
 
-
+/**
+ * 
+ * @author Dietmar Seifert
+ *
+ */
 public class OSMStreet extends Street implements Comparable {
 	private static Connection housenumberConn = null;
 
 	private static List<OSMTagList> validHighwayTypes = new ArrayList<>();
 	
+	/**
+	 * List of OSM ways, which belong to the named OSM Street
+	 */
 	private List<OSMSegment> segments = new ArrayList<>();
 	private String geometryWKT = null;
+	/**
+	 * internal Flag: will be set to true, when a way segment has added
+	 * <br>If the geometryWKT will be get, this flag will be evaluated first,
+	 * and, if set, the geometry will be created new first
+	 * @see addSegment, geometryWKT
+	 */
 	private boolean geometryIsDirty = false;
 
 	

@@ -1,51 +1,118 @@
 package de.regioosm.housenumbercore.util;
-/*
-
-	V2.0, 03.05.2013, Dietmar Seifert
-		* Portierung auf regio-osm.de und Berücksichtigung große DB, nicht mehr Snapshot mit den genau passenden Gebieten und sonst nichts
-
-	V1.0 02.02.2011
-		* Erstellung
-
-*/
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-//import de.diesei.listofstreets.LogMessage;
 
-
-/*
- * 04.05.2015 die noch fehlenden städte in Niederlande bei den Auswertungen
- * SELECT land.id AS countryid, land, stadt.id AS municipalityid, stadt, officialkeys_id, osm_hierarchy FROM  stadt, land WHERE stadt.land_id = land.id AND land = 'Netherland' AND stadt.id NOT IN (SELECT distinct(s.id) FROM evaluations AS e, jobs AS j, gebiete AS g, stadt AS s, land as l  WHERE e.job_id = j.id AND j.gebiete_id = g.id AND g.stadt_id = s.id AND s.land_id = l.id and land = 'Netherland') ORDER BY osm_hierarchy,stadt, officialkeys_id;
+/**
+ * represents a municipality, identified by name, country and, if possible, a unique reference id.
+ * It doesn't include the geometry of the municipality. Therefore see class MunicipalityArea 
+ * 
+ * @author Dietmar Seifert
+ * @version 0.9, 2018-02-20
+ * 
  */
-
-
 public class Municipality implements Comparable {
 	private static Connection housenumberConn = null;
 
+	/**
+	 * Two letter ISO Code for Countries, see
+	 * {@link https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2}
+	 */
 	protected String countrycode = "";
+	/**
+	 * Name of municipality. Should be the name like in OSM key name in municipality boundary relation
+	 */
 	protected String name = "";
+	/**
+	 * country specific, free usable <b>unique</b> identification for municiapality
+	 * <br>In Germany, it is Amtlicher Gemeindeschlüssel, which is stored in OSM as key de:amtlicher_gemeindeschluessel
+	 * <br>This ref uses the value of the key
+	 * @see officialKey
+	 */
 	protected String officialRef = "";
+	/**
+	 * internal use: DB-Id for Country
+	 */
 	protected Long countryDBId = -1L;
+	/**
+	 * internnal use: DB-Id for municipality
+	 */
 	protected Long municipalityDBId = -1L;
+	/**
+	 * country specific, free usable identification for municiapality
+	 * <br>In Germany, it is Amtlicher Gemeindeschlüssel, which is stored in OSM as key de:amtlicher_gemeindeschluessel
+	 * <br>This ref uses the key
+	 * 
+	 * @see officialRef
+	 */
 	protected String officialKey = "";
-	protected String adminPolygonWKB = null;
-	protected String adminPolygonOsmIdlist = null;
+	/**
+	 * Define, which boundary administrative polygons in OSM should be used to make evaluations.
+	 * <br>List of OSM key admin_level values.
+	 * <br>If List is empty, all available boundary polygons on each admin level will be used.
+	 * <br>This list is useful, when boundary polygons in a admin level is only partly used or
+	 * in two different levels are the same boundary polygons.
+	 */
 	protected List<Integer> adminLevels = new ArrayList<>();
+	/**
+	 * Depending on the official housenumber list for a municipality, this is set to true, 
+	 * if the list contains a sub area id field.
+	 * <br>In this case, the evaluation is more precise, as it nows, in which sub area a 
+	 * missing housenumber must be.
+	 * <br>If set, adminLevels must be set to two values. One value is municipality level (mostly level 8),
+	 * and the second value is sub area level, which corresponds to sub area field of housenumber list
+	 * 
+	 * @see adminLevels
+	 */
 	protected boolean subareasidentifyable;
+	/**
+	 * Optionally field in cases, where street names in official housenumber list differs 
+	 * from mainly used language in OSM key name.
+	 * <br>Example: in Belgium, two languages are mainly used. With this field, you define
+	 * a two letter ISO language code (for example NL and then OSM key name:NL will be used,
+	 * near main OSM key name, to find named streets
+	 */
 	protected String languagecode = "";	// force search/evaluate for names with country prefixes on osm key name:xx
 
+	/**
+	 * internal store to hold search results from method search.
+	 * <br>Get a result with method next()
+	 */
 	private static List<Municipality> searchResults = new ArrayList<>();
+	/**
+	 * internal pointer to hold the actual result entry in list searchResults
+	 * <br>It will be incremented every time next() will be called
+	 */
 	private static int searchResultindex = 0;
+	/**
+	 * Class-wide field for languagecode, which will can be set, if useful.
+	 */
 	private static String defaultLanguagecode = "";
-	
+
+	/**
+	 * support an empty constructor.
+	 * <br>for use of the instance, use at least setter setCountrycode and setName
+	 */
 	public Municipality() {
-		
+		this.countrycode = "";
+		this.name = "";
+		this.officialRef = "";
 	}
-	
+
+	/**
+	 * constructor for a municipality instance
+	 * @param countrycode		Two letter ISO Code for Country, see {@link https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2}
+	 * <br>You can get the code from Country.getCountryShortname
+	 * @see Country.getCountryShortname
+	 *
+	 * @param municipalityName	Name of municipality, as stored in OSM in boundary polygon in key name
+	 * 
+	 * @param officialRef		country specific, free usable <b>unique</b> identification for municiapality
+	 * @see officialKey
+	 */
 	public Municipality(String countrycode, String municipalityName, String officialRef) {
 		this.countrycode = countrycode;
 		this.name = municipalityName;
@@ -57,32 +124,43 @@ public class Municipality implements Comparable {
 		setCountryDBId(muni.countryDBId);
 		setMunicipalityDBId(muni.municipalityDBId);
 		this.officialKey = muni.officialKey;
-		this.adminPolygonWKB = muni.adminPolygonWKB;
-		this.adminPolygonOsmIdlist = muni.adminPolygonOsmIdlist;
 		this.adminLevels = muni.adminLevels;
 		this.subareasidentifyable = muni.subareasidentifyable;
 		this.languagecode = muni.languagecode;
 	}
 
+	/**
+	 * give this class access to housenumber DB
+	 * @param housenumberConn
+	 */
 	public static void connectDB(Connection housenumberConn) {
 		Municipality.housenumberConn = housenumberConn;
 	}
 
 	/**
-	 * search municipalities in DB and store it internaly. After that, you can get one item per time with calls of next()
-	 * @param country 
-	 * @param municipalityName Name of municipality. Wildcard * allowed, to get more than one or even all municipality in country
-	 * @param officialRef official reference of the municipality. Examine OSM key for official ref in country via Country.getOfficialReferenceOsmKey()
-	 * @param adminHierachyTextform filter municipalities via admin hierarchy in textform. For example "Bundesrepublik Deutschland,Bayern".
-	 * Wildcard * allowed
-	 * @return number of found municipalities in DB
+	 * search for one or many municipalities in DB and returns the number of found municipalities.
+	 * <br>The result will be stored internally and can get one municipality per time via calls to next()
+	 * 
+	 * @param country			In which Country the municipalities will be searched. Wildcard * allowed 
+	 * @param municipalityName	Name of municipality. Wildcard * allowed, to get 
+	 * 							more than one or even all municipality in country
+	 * @param officialRef		Official reference of the municipality. Examine OSM key for 
+	 * 							official ref in country via Country.getOfficialReferenceOsmKey()
+	 * @param adminHierachyTextform		filter municipalities via admin hierarchy in textform. 
+	 * 									For example "Bundesrepublik Deutschland,Bayern".
+	 * 									Wildcard * allowed
+	 * @return 					number of found municipalities in DB
 	 * @throws Exception 
 	 */
 	public static int search(String municipalityCountry, String municipalityName, String officialRef, String adminHierachyTextform) throws Exception {
-		Country country = new Country();
-		country.connectDB(housenumberConn);
-		if(country.getCountryShortname(municipalityCountry).equals(""))
+		if(housenumberConn == null) {
+			throw new Exception("please first use .connectDB");
+		}
+
+		Country.connectDB(housenumberConn);
+		if(Country.getCountryShortname(municipalityCountry).equals(""))
 			throw new Exception("invalid or missing Country");
+
 		if((municipalityName == null) || municipalityName.equals("")) {
 			municipalityName = "%";
 		} else if(municipalityName.indexOf("*") != -1) {
@@ -151,7 +229,7 @@ public class Municipality implements Comparable {
 	}
 
 	/**
-	 * get next municipality (previously get via readfromDB(..)
+	 * get next municipality from result of the search() call
 	 */
 	public static Municipality next() {
 		Municipality municipality = null;
@@ -161,22 +239,6 @@ public class Municipality implements Comparable {
 			searchResultindex++;
 		}
 		return municipality;
-	}
-	
-	/**
-	 * examine available administrative Levels from osm DB for the municipality.
-	 * @return
-	 */
-//	private int[] getAdministrationLevels() {
-//		
-//	}
-
-	public String getAdminPolygonWKB() {
-		return this.adminPolygonWKB;
-	}
-
-	public String getAdminPolygonOsmIdlist() {
-		return this.adminPolygonOsmIdlist;
 	}
 	
 	public String getCountrycode() {
@@ -212,34 +274,40 @@ public class Municipality implements Comparable {
 		return subareasidentifyable;
 	}
 
-	public void setCountryDBId(long countryid) {
-		this.countryDBId = countryid;
+	/**
+	 * set the 2letter ISO code for Country, if you want to force searches and evaluations of objects with key name:xx
+	 * for example in Countries, where 2 languages are spoken, like Belgium or in Italy Area of South-Tirol
+	 * @param languagecode
+	 */
+	public static void setLanguageCode(String languagecode) {
+		Municipality.defaultLanguagecode = languagecode;
+	}
+	
+	public void setCountrycode(String countrycode) {
+		this.countrycode = countrycode;
 	}
 
 	public void setMunicipalityDBId(long municipalityid) {
 		this.municipalityDBId = municipalityid;
 	}
 		
-	
-	/**
-	 * set the 2letter ISO code for Country, if you want to force searches and evaluations of objects with key name:xx
-	 * for example in Countries, where 2 languages are spoken, like Belgium or in Italy Area of South-Tirol
-	 * @param languagecode
-	 */
-	public void setLanguageCode(String languagecode) {
-		Municipality.defaultLanguagecode = languagecode;
+	public void setName(String name) {
+		this.name = name;
 	}
 	
-	/**
-	 * define OSM administration boundary level(s), which should be used go generate housenumber evaluations for this municipality
-	 * 	 (OSM Key 'admin_level')
-	 * @param levelArray
-	 */
-//	private void setactiveAdministrativeLevel(int[] levelArray) {
-//		
-//	}
+	public void setOfficialRef(String officialref) {
+		this.officialRef = officialref;
+	}
+
+	public void setCountryDBId(long countryid) {
+		this.countryDBId = countryid;
+	}
+
 
 	@Override
+	/**
+	 * return a simple textual representation of the municipality instance 
+	 */
 	public String toString() {
 		String result = "";
 		
@@ -256,6 +324,9 @@ public class Municipality implements Comparable {
 	}
 
 
+	/**
+	 * method define, if parameter obj is identical or not to instance, depending on important fields of the class
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if(! (obj instanceof Municipality))
@@ -275,6 +346,9 @@ public class Municipality implements Comparable {
 			return false;
 	}
 
+	/**
+	 * method to get a fast hashcode for the instance, to distinct from other instances of municipality
+	 */
 	@Override
 	public int hashCode() {
 		int hashCode = 13;
@@ -286,13 +360,15 @@ public class Municipality implements Comparable {
 		return hashCode;
 	}
 
+	/**
+	 * method to allow sorting of municipality instances
+	 */
 	@Override
     public int compareTo(Object obj) {
 		final int BEFORE = -1;
 		final int EQUAL = 0;
 		final int AFTER = 1;
 
-		if(this == null) return AFTER;
 		if(obj == null) return AFTER;
 
 		if(! (obj instanceof Municipality))
