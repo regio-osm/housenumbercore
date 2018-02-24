@@ -10,7 +10,6 @@ package de.zalando.typemapper.postgres;
  * License: 'Licensed under the Apache License, Version 2.0 (the "License")'
  */
 
-import java.sql.Connection;
 
 import java.util.HashMap;
 import java.util.Iterator;
