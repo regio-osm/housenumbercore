@@ -10,14 +10,14 @@ import java.util.List;
 import de.regioosm.housenumbercore.util.OSMSegment.OSMType;
 
 /**
- * 
+ * OSM representation of a street within a municipality, including its geometry and OSM tags
  * @author Dietmar Seifert
  *
  */
 public class OSMStreet extends Street implements Comparable {
 	private static Connection housenumberConn = null;
 
-	private static List<OSMTagList> validHighwayTypes = new ArrayList<>();
+	private static List<OSMTagList> validHighwayTypes = null;
 	
 	/**
 	 * List of OSM ways, which belong to the named OSM Street
@@ -37,12 +37,21 @@ public class OSMStreet extends Street implements Comparable {
 
 	public OSMStreet(Municipality municipality, String streetname) {
 		super(municipality, streetname);
-		setDefaultValidHighwayTypes();
+		if(validHighwayTypes == null)
+			setDefaultValidHighwayTypes();
 	}
 
-	public OSMStreet(Municipality municipality, String streetname, OSMType type, long osmid, String geomwkb) {
+	/**
+	 * represent an osm way for a named street within a municipality, including osm-id and geometry (in well known text format)
+	 * @param municipality
+	 * @param streetname
+	 * @param type
+	 * @param osmid
+	 * @param geomwkt
+	 */
+	public OSMStreet(Municipality municipality, String streetname, OSMType type, long osmid, String geomwkt) {
 		this(municipality, streetname);
-		addSegment(new OSMSegment(type, osmid, geomwkb));
+		addSegment(new OSMSegment(type, osmid, geomwkt));
 	}
 
 	public static void connectDB(Connection housenumberConn) {
@@ -55,6 +64,7 @@ public class OSMStreet extends Street implements Comparable {
 	 * From now on, here is the list of positive Types, which are only valid 
 	 */
 	private static void setDefaultValidHighwayTypes() {
+		OSMStreet.validHighwayTypes = new ArrayList<>();
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "primary")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "secondary")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "tertiary")));
@@ -80,6 +90,7 @@ public class OSMStreet extends Street implements Comparable {
 	}
 
 	public String normalizeName() {
+//TODO add some country specific normalizations
 		String resultstreetname = this.getName();
 		if(this.getMunicipality().getCountrycode().equals("RO")) {	//RO = Romania
 			if(resultstreetname.startsWith("Strada ")) {
@@ -159,8 +170,8 @@ public class OSMStreet extends Street implements Comparable {
 	}
 
 	public static boolean isValidNamedHighwaytype(String osmhighwaykey, String osmhighwayvalue) {
-		if(validHighwayTypes.size() == 0)
-			setDefaultValidHighwayTypes();
+		if(validHighwayTypes == null)
+			return false;
 
 		for(int typesindex = 0; typesindex < validHighwayTypes.size(); typesindex++) {
 			OSMTagList actualtaglist = validHighwayTypes.get(typesindex);
@@ -177,7 +188,7 @@ public class OSMStreet extends Street implements Comparable {
 	public String toString() {
 		String output = "";
 
-		output += "Straße: " + this.getName();
+		output += "street: " + this.getName();
 		output += ", in " + this.getMunicipality().toString();
 
 		return output;
@@ -212,7 +223,6 @@ public class OSMStreet extends Street implements Comparable {
 		final int EQUAL = 0;
 		final int AFTER = 1;
 
-		if(this == null) return AFTER;
 		if(obj == null) return AFTER;
 
 		if(! (obj instanceof OSMStreet))
@@ -229,5 +239,4 @@ public class OSMStreet extends Street implements Comparable {
 
 		return EQUAL;
 	}
-
 }

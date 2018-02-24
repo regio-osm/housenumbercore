@@ -23,9 +23,18 @@ public class MunicipalityArea extends Municipality {
 	private static Connection osmdbConn = null;
 
 	private String adminPolygonWKB = null;
-	private String adminPolygonOsmIdlist = null;
+	@Deprecated
+	private String adminPolygonOsmIdlist = "";
+	private Long adminPolygonOsmId = 0L;
 
+	/**
+	 * Name of municipality area
+	 */
 	private String name = "";
+	/**
+	 * Identification of municipality area in officialhousenumer list
+	 * Can be a name or a reference id 
+	 */
 	private String subid = "-1";
 	private int adminlevel = 0;
 	private Long muniareaDBId = -1L;
@@ -33,16 +42,16 @@ public class MunicipalityArea extends Municipality {
 	private static int searchResultindex = 0;
 	
 
-	public MunicipalityArea(Municipality muni) {
+	public MunicipalityArea(Municipality muni) throws Exception {
 		super(muni);
 	}
 
 	public String getName() {
-		return name;
+		return this.name;
 	}
 	
 	public long getMuniAreaDBId() {
-		return muniareaDBId;
+		return this.muniareaDBId;
 	}
 	
 	public long getMunicipalityDBId() {
@@ -61,12 +70,22 @@ public class MunicipalityArea extends Municipality {
 		return adminPolygonWKB;
 	}
 
+	public Long getAdminPolygonOsmId() {
+		return adminPolygonOsmId;
+	}
+	
 	public String getAreaId() {
 		return subid;
 	}
 
 	public int getAreaAdminlevel() {
 		return adminlevel;
+	}
+	
+	public void setArea(String name, int adminlevel, String subid) {
+		this.name = name;
+		this.adminlevel = adminlevel;
+		this.subid = subid;
 	}
 	
 	/**
@@ -98,12 +117,12 @@ public class MunicipalityArea extends Municipality {
 	 */
 	public static int search(String country, String municipalityName, String officialRef, String areaName, String adminHierachyTextform) throws Exception {
 		if(housenumberConn == null) {
-			throw new Exception("please first use .connectDB");
+			throw new IllegalStateException("please first use .connectDB");
 		}
 
 		Country.connectDB(housenumberConn);
 		if(Country.getCountryShortname(country).equals(""))
-			throw new Exception("invalid or missing Country");
+			throw new IllegalStateException("invalid or missing Country");
 
 		if((municipalityName == null) || municipalityName.equals("")) {
 			municipalityName = "%";
@@ -130,10 +149,6 @@ public class MunicipalityArea extends Municipality {
 		searchResults.clear();
 		searchResultindex = 0;
 
-		
-		
-		
-		
 		String searchMunicipalityAreasSql = "";
 		searchMunicipalityAreasSql = "SELECT a.id AS areaid, name, " +
 			"subareasidentifyable, m.id as muniid, " +
@@ -179,6 +194,7 @@ public class MunicipalityArea extends Municipality {
 				muniarea.subareasidentifyable = false;
 			muniarea.muniareaDBId = searchMunicipalityAreasRs.getLong("areaid");
 			muniarea.adminPolygonWKB = searchMunicipalityAreasRs.getString("polygon");
+			muniarea.adminPolygonOsmId = searchMunicipalityAreasRs.getLong("osm_id");
 			searchResults.add(muniarea);
 		}
 		searchMunicipalityAreasRs.close();
@@ -213,6 +229,7 @@ public class MunicipalityArea extends Municipality {
 		String actual_polygon_part = "";
 		String complete_polygon = "";
 		String complete_polygon_idlist = "";
+		Long polygon_id = 0L;
 
 		String osmadminrelationSql = "";
 		osmadminrelationSql = "SELECT osm_id AS id, " +
@@ -448,6 +465,7 @@ public class MunicipalityArea extends Municipality {
 						// polygon first or only part, safe in extra variable
 					complete_polygon = actual_polygon_part;
 					complete_polygon_idlist = osmadminrelationRs.getString("id");
+					polygon_id = osmadminrelationRs.getLong("id");
 					System.out.println("ok, got first part of relation");
 				} else if(count_correct_relations > 1) {
 					System.out.println("ok, got another part of relation");
@@ -488,6 +506,7 @@ public class MunicipalityArea extends Municipality {
 						ResultSet rs_create_multipolygon = mergepolygonpartsStmt.executeQuery( mergepolygonpartsSql );
 						if( rs_create_multipolygon.next() ) {
 							complete_polygon_idlist += "," + osmadminrelationRs.getString("id");	// add actual polygon osm-id to list of all unioned-polygons
+//TODO handle, that polygon_id can't be set second time
 							complete_polygon = rs_create_multipolygon.getString("unionpolygon");
 						}
 					}	// ende try DB-connect
@@ -507,11 +526,13 @@ public class MunicipalityArea extends Municipality {
 					"skip rest of work for this municipality");
 				this.adminPolygonWKB = null;
 				this.adminPolygonOsmIdlist = null;
+				this.adminPolygonOsmId = 0L;
 					// ok, abort actual municipality
 				generatedpolygonstate = false;
 			} else {
 				this.adminPolygonWKB = complete_polygon;
 				this.adminPolygonOsmIdlist = complete_polygon_idlist;
+				this.adminPolygonOsmId = polygon_id;
 				generatedpolygonstate = true;
 			}
 		}
@@ -917,29 +938,34 @@ public class MunicipalityArea extends Municipality {
 
 			if((paramLanguageCode != null) && !paramLanguageCode.equals(""))
 				Municipality.setLanguageCode(paramLanguageCode);
-			int municipalitycount = 0;
+			Municipality newmuni = null;
 			try {
-				municipalitycount = Municipality.search(paramCountry, paramMunicipality, paramOfficialRef, paramAdminHierarchy);
-			} catch (Exception e) {
+				newmuni = new Municipality(paramCountry, paramMunicipality, paramOfficialRef);
+				newmuni.store();
+			} catch (Exception e1) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return;
+				e1.printStackTrace();
 			}
 
-			System.out.println("number of municipalities found to process: " + municipalitycount);
 			Municipality municipality = null;
 				// loop over all found municipalities
 			while( (municipality = Municipality.next()) != null ) {
-				MunicipalityArea newarea = new MunicipalityArea(municipality);
+				MunicipalityArea newarea;
+				try {
+					newarea = new MunicipalityArea(municipality);
+					System.out.println("Processing municipality " + municipality.toString() + "===");
+					if(!newarea.generateMunicipalityPolygon(municipality, 0, true)) {
+						//TODO display error, generating Admin polygon for municipality
+						continue;
+					}
+					if(!newarea.generateSuburbPolygons(municipality, true)) {
+						//TODO display error, generating suburb polygons for municipality
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
-				System.out.println("Processing municipality " + municipality.toString() + "===");
-				if(!newarea.generateMunicipalityPolygon(municipality, 0, true)) {
-					//TODO display error, generating Admin polygon for municipality
-					continue;
-				}
-				if(!newarea.generateSuburbPolygons(municipality, true)) {
-					//TODO display error, generating suburb polygons for municipality
-				}
 			}   // loop over all found municipalities
 
 			java.util.Date program_endtime = new java.util.Date();

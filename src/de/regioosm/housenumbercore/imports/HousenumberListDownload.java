@@ -4,7 +4,6 @@ package de.regioosm.housenumbercore.imports;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +18,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
@@ -34,29 +30,16 @@ import java.util.zip.GZIPInputStream;
 
 
 /**
+ * First attempts to directly download of housenumber lists, parse and auto import
+ * This is for auto update of lists, which are updated in short cycle times
+ * 
  * @author Dietmar Seifert
- *
- * evaluate the housenumbers in a municipality or a subregion of it, check againsts an available housenumerlist
- * 	
 */
+public class HousenumberListDownload {
+	public static final Logger logger = Logger.getLogger(HousenumberListDownload.class.getName());
 
 
-
-/**
- * @author Dietmar Seifert
- *
- * evaluate the housenumbers in a municipality or a subregion of it, check againsts an available housenumerlist
- * 	
-*/
-
-
-
-
-public class HousenumberList {
-	public static final Logger logger = Logger.getLogger(HousenumberList.class.getName());
-
-
-	public HousenumberList() {
+	public HousenumberListDownload() {
 		Handler handler = new ConsoleHandler();
 		handler.setFormatter(new Formatter() {
 	         public String format(LogRecord rec) {
@@ -127,7 +110,6 @@ public class HousenumberList {
 		logger.log(Level.FINE, "OSM Overpass Query ===" + overpass_query + "===");
 */
 		String url_string = "";
-		File osmFile = null;
 
 		try {
 			url_string = overpass_url;
@@ -268,9 +250,7 @@ public class HousenumberList {
 			dis.close();
 			System.out.println("finished Download,       " + linecount + " Lines,    " + bytecount/1000 +  "kb Download");
 			
-				// first, save upload data as local file, just for checking or for history
-			DateFormat time_formatter = new SimpleDateFormat("yyyyMMdd-HHmmss'Z'");
-			String downloadtime = time_formatter.format(new Date());
+
 			
 			byte[] bytesOfMessage = osmresultcontent.toString().getBytes("UTF-8");
 			MessageDigest md;
@@ -287,7 +267,6 @@ public class HousenumberList {
 			String filename = "download.txt"; 
 
 			try {
-				osmFile = new File(filename);
 				PrintWriter osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(filename),StandardCharsets.ISO_8859_1))); //UTF_8  ISO_8859_1
 				osmOutput.println(osmresultcontent.toString());

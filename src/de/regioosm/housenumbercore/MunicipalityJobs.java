@@ -1,10 +1,56 @@
 package de.regioosm.housenumbercore;
 
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
+
+import org.openstreetmap.osmosis.core.OsmosisRuntimeException;
+import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
+import org.openstreetmap.osmosis.core.container.v0_6.NodeContainer;
+import org.openstreetmap.osmosis.core.container.v0_6.WayContainer;
+import org.openstreetmap.osmosis.core.domain.v0_6.Entity;
+import org.openstreetmap.osmosis.core.domain.v0_6.Node;
+import org.openstreetmap.osmosis.core.domain.v0_6.Relation;
+import org.openstreetmap.osmosis.core.domain.v0_6.Tag;
+import org.openstreetmap.osmosis.core.domain.v0_6.Way;
+import org.openstreetmap.osmosis.core.domain.v0_6.WayNode;
+import org.openstreetmap.osmosis.core.filter.common.IdTracker;
+import org.openstreetmap.osmosis.core.filter.common.IdTrackerFactory;
+import org.openstreetmap.osmosis.core.filter.common.IdTrackerType;
+import org.openstreetmap.osmosis.core.task.v0_6.RunnableSource;
+import org.openstreetmap.osmosis.core.task.v0_6.Sink;
+import org.openstreetmap.osmosis.xml.common.CompressionMethod;
+import org.openstreetmap.osmosis.xml.v0_6.XmlReader;
+
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.OSMSegment;
@@ -28,14 +74,17 @@ public class MunicipalityJobs {
 	private long jobDBId = -1L;
 
 	static Applicationconfiguration configuration = new Applicationconfiguration();
-	static String parameter_land = "";
-	static String parameter_stadt = "";
 
+	private static class logger {
+//TODO replace with real logger
+		private static void log(Level level, String text) {
+			System.out.println("Level: " + level.toString() + " ===" + text + "===");
+		}
+	}
 
 	public void generateJob(MunicipalityArea muniarea) {
 
 		try {
-
 			java.util.Date localDebugEndtime;
 			java.util.Date localDebugStarttime;
 
@@ -161,10 +210,16 @@ public class MunicipalityJobs {
 
 	
 	/**
-	 * 
+	 * get OSM streets for municipality area - either from local osm2pgsql DB or from OSM Overpass live - depends on internal configuration
 	 * @param muniarea
 	 */
 	public Map<Street, OSMStreet> getOSMStreets(MunicipalityArea muniarea) {
+		//return getOSMStreetsFromDB(muniarea);
+		return getOSMStreetsFromOverpass(muniarea);
+	}
+
+		
+	private Map<Street, OSMStreet> getOSMStreetsFromDB(MunicipalityArea muniarea) {
 		Map<Street, OSMStreet> streets = new TreeMap<>();
 
 		String gebietsgeometrie = muniarea.getAreaPolygonAsWKB();
@@ -248,7 +303,8 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 					"===, normalisiert ===" + actualOSMStreet.getName() + "===");
 
 					//TODO add all Tags from osm ways, not just highway=*
-				OSMTagList osmtags = new OSMTagList(new OSMTag("highway", osmhighwaytype));
+				List<OSMTag> osmtags = new ArrayList<>();
+				osmtags.add(new OSMTag("highway", osmhighwaytype));
 
 				OSMSegment osmway = new OSMSegment(OSMType.way,
 					selectStreetGeometriesRS.getLong("osmid"),
@@ -274,9 +330,412 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 		return streets;
 	}
 
+	/**
+	 * get OSM streets live from OSM Overpass Server and get filtered streets back, with geometry
+	 * CAUTION: up to now (2018-02), only OSM ways will be search for, not nodes or relations
+	 * @param muniarea
+	 * @return
+	 */
+	private Map<Street, OSMStreet> getOSMStreetsFromOverpass(MunicipalityArea muniarea) {
+		final Integer MAXOVERPASSTRIES = 3;
+
+		final String OVERPASSURL = "http://overpass-api.de/api/";
+		//String OVERPASSURL = "http://overpass.osm.rambler.ru/cgi/";
+		//String OVERPASSURL = "http://dev.overpass-api.de/api_mmd/";
+
+		Map<Street, OSMStreet> streets = new TreeMap<>();
+
+		URL                url; 
+		URLConnection      urlConn; 
+		BufferedReader     dis;
+
+
+		
+		IdTracker availableNodes = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		IdTracker availableWays = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		IdTracker availableRelations = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		
+		Map<Long, Node> allNodes = new HashMap<>();
+		Map<Long, Way> allWays = new HashMap<>();
+		Map<Long, Relation> allRelations = new HashMap<>();
+		
+			
+		
+		String overpass_queryurl = "interpreter?data=";
+		String overpass_query = "[timeout:3600][maxsize:1073741824]\n" +
+			"[out:xml];\n" +
+			"area(" + (3600000000L + -1* muniarea.getAdminPolygonOsmId()) + ")->.boundaryarea;\n" +
+			"(\n" +
+			"way(area.boundaryarea)[\"highway\"][\"name\"];>;\n" +
+			");\n" +
+			"out meta;";
+		logger.log(Level.FINE, "OSM Overpass Query ===" + overpass_query + "===");
+
+		String url_string = "";
+		File osmFile = null;
+
+		try {
+			String overpass_query_encoded = URLEncoder.encode(overpass_query, "UTF-8");
+			overpass_query_encoded = overpass_query_encoded.replace("%28","(");
+			overpass_query_encoded = overpass_query_encoded.replace("%29",")");
+			overpass_query_encoded = overpass_query_encoded.replace("+","%20");
+			url_string = OVERPASSURL + overpass_queryurl + overpass_query_encoded;
+			logger.log(Level.INFO, "Request for Overpass-API to get housenumbers ...");
+			logger.log(Level.FINE, "Overpass Request URL to get housenumbers ===" + url_string + "===");
+
+			StringBuffer osmresultcontent = new StringBuffer();
+
+			InputStream overpassResponse = null; 
+			String responseContentEncoding = "";
+			Integer numberfailedtries = 0;
+			boolean finishedoverpassquery = false;
+			do {
+				try {
+					url = new URL(url_string);
+
+					if(numberfailedtries > 0) {
+						logger.log(Level.WARNING, "sleeping now for " + (2 * numberfailedtries) + " seconds before Overpass-Query will be tried again, now: " 
+							+ new Date().toString());
+						TimeUnit.SECONDS.sleep(2 * numberfailedtries);
+						logger.log(Level.WARNING, "ok, slept for " + (2 * numberfailedtries) + " seconds before Overpass-Query will be tried again, now: "
+							+ new Date().toString());
+					}
+					
+					urlConn = url.openConnection(); 
+					urlConn.setDoInput(true); 
+					urlConn.setUseCaches(false);
+					urlConn.setRequestProperty("User-Agent", "regio-osm.de Housenumber Evaluation Client, contact: strassenliste@diesei.de");
+					urlConn.setRequestProperty("Accept-Encoding", "gzip, compress");
+					
+					overpassResponse = urlConn.getInputStream(); 
+		
+					Integer headeri = 1;
+					logger.log(Level.FINE, "Overpass URL Response Header-Fields ...");
+					while(urlConn.getHeaderFieldKey(headeri) != null) {
+						logger.log(Level.FINE, "  Header # " + headeri 
+							+ ":  [" + urlConn.getHeaderFieldKey(headeri)
+							+ "] ===" + urlConn.getHeaderField(headeri) + "===");
+						if(urlConn.getHeaderFieldKey(headeri).equals("Content-Encoding"))
+							responseContentEncoding = urlConn.getHeaderField(headeri);
+						headeri++;
+					}
+					finishedoverpassquery = true;
+				} catch (MalformedURLException mue) {
+					logger.log(Level.WARNING, "Overpass API request produced a malformed Exception (Request #" 
+						+ (numberfailedtries + 1) + ", Request URL was ===" + url_string + "===, Details follows ...");					
+					logger.log(Level.WARNING, mue.toString());
+					numberfailedtries++;
+					if(numberfailedtries > MAXOVERPASSTRIES) {
+						logger.log(Level.SEVERE, "Overpass API didn't delivered data, gave up after 3 failed requests, Request URL was ===" + url_string + "===");
+						//setResponseState(numberfailedtries);
+						return null;
+					}
+					//logger.log(Level.WARNING, "sleeping now for " + (2 * numberfailedtries) + " seconds before Overpass-Query will be tried again");
+					//TimeUnit.SECONDS.sleep(2 * numberfailedtries);
+				} catch( ConnectException conerror) {
+					numberfailedtries++;
+					if(numberfailedtries > MAXOVERPASSTRIES) {
+						logger.log(Level.SEVERE, "Overpass API didn't delivered data, gave up after 3 failed requests, Request URL was ===" + url_string + "===");
+						//setResponseState(numberfailedtries);
+						return null;
+					}
+
+					url_string = OVERPASSURL + "status";
+					System.out.println("url to get overpass status for this server requests ===" + url_string + "===");
+					url = new URL(url_string);
+					urlConn = url.openConnection(); 
+					urlConn.setDoInput(true); 
+					urlConn.setUseCaches(false);
+					urlConn.setRequestProperty("User-Agent", "regio-osm.de Housenumber Evaluation Client, contact: strassenliste@diesei.de");
+					urlConn.setRequestProperty("Accept-Encoding", "gzip, compress");
+					
+					overpassResponse = urlConn.getInputStream(); 
+		
+					Integer headeri = 1;
+					logger.log(Level.FINE, "Overpass URL Response Header-Fields ...");
+					while(urlConn.getHeaderFieldKey(headeri) != null) {
+						logger.log(Level.FINE, "  Header # " + headeri 
+							+ ":  [" + urlConn.getHeaderFieldKey(headeri)
+							+ "] ===" + urlConn.getHeaderField(headeri) + "===");
+						if(urlConn.getHeaderFieldKey(headeri).equals("Content-Encoding"))
+							responseContentEncoding = urlConn.getHeaderField(headeri);
+						headeri++;
+					}
+					if(responseContentEncoding.equals("gzip")) {
+						dis = new BufferedReader(new InputStreamReader(new GZIPInputStream(overpassResponse),"UTF-8"));
+					} else {
+						dis = new BufferedReader(new InputStreamReader(overpassResponse,"UTF-8"));
+					}
+					String inputline = "";
+					while ((inputline = dis.readLine()) != null)
+					{ 
+						System.out.println("Content ===" + inputline + "===\n");
+					}
+					dis.close();
+				
+				} catch (IOException ioe) {
+					logger.log(Level.WARNING, "Overpass API request produced an Input/Output Exception  (Request #" 
+						+ (numberfailedtries + 1) + ", Request URL was ===" + url_string + "===, Details follows ...");					
+					logger.log(Level.WARNING, ioe.toString());
+					numberfailedtries++;
+					if(numberfailedtries > MAXOVERPASSTRIES) {
+						logger.log(Level.SEVERE, "Overpass API didn't delivered data, gave up after 3 failed requests, Request URL was ===" + url_string + "===");
+						//setResponseState(numberfailedtries);
+						return null;
+					}
+					//logger.log(Level.WARNING, "sleeping now for " + (2 * numberfailedtries) + " seconds before Overpass-Query will be tried again");
+					//TimeUnit.SECONDS.sleep(2 * numberfailedtries);
+
+				
+					url_string = OVERPASSURL + "status";
+					System.out.println("url to get overpass status for this server requests ===" + url_string + "===");
+					url = new URL(url_string);
+					urlConn = url.openConnection(); 
+					urlConn.setDoInput(true); 
+					urlConn.setUseCaches(false);
+					urlConn.setRequestProperty("User-Agent", "regio-osm.de Housenumber Evaluation Client, contact: strassenliste@diesei.de");
+					urlConn.setRequestProperty("Accept-Encoding", "gzip, compress");
+					
+					overpassResponse = urlConn.getInputStream(); 
+		
+					Integer headeri = 1;
+					logger.log(Level.FINE, "Overpass URL Response Header-Fields ...");
+					while(urlConn.getHeaderFieldKey(headeri) != null) {
+						logger.log(Level.FINE, "  Header # " + headeri 
+							+ ":  [" + urlConn.getHeaderFieldKey(headeri)
+							+ "] ===" + urlConn.getHeaderField(headeri) + "===");
+						if(urlConn.getHeaderFieldKey(headeri).equals("Content-Encoding"))
+							responseContentEncoding = urlConn.getHeaderField(headeri);
+						headeri++;
+					}
+					if(responseContentEncoding.equals("gzip")) {
+						dis = new BufferedReader(new InputStreamReader(new GZIPInputStream(overpassResponse),"UTF-8"));
+					} else {
+						dis = new BufferedReader(new InputStreamReader(overpassResponse,"UTF-8"));
+					}
+					String inputline = "";
+					while ((inputline = dis.readLine()) != null)
+					{ 
+						System.out.println("Content ===" + inputline + "===\n");
+					}
+					dis.close();
+				
+				
+				}
+			} while(! finishedoverpassquery);
 	
+			//setResponseState(numberfailedtries);
+			String inputline = "";
+			if(responseContentEncoding.equals("gzip")) {
+				dis = new BufferedReader(new InputStreamReader(new GZIPInputStream(overpassResponse),"UTF-8"));
+			} else {
+				dis = new BufferedReader(new InputStreamReader(overpassResponse,"UTF-8"));
+			}
+			while ((inputline = dis.readLine()) != null)
+			{ 
+				osmresultcontent.append(inputline + "\n");
+			}
+			dis.close();
+			
+				// first, save upload data as local file, just for checking or for history
+			DateFormat time_formatter = new SimpleDateFormat("yyyyMMdd-HHmmss'Z'");
+			DateFormat germanyformatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+			String downloadtime = time_formatter.format(new Date());
+			
+			String filename = configuration.application_datadir + File.separator + "overpassdownload" 
+				+ File.separator + downloadtime + ".osm";
+
+			try {
+				osmFile = new File(filename);
+				PrintWriter osmOutput = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+						new FileOutputStream(filename),StandardCharsets.UTF_8)));
+				osmOutput.println(osmresultcontent.toString());
+				osmOutput.close();
+				logger.log(Level.INFO, "Saved Overpass OSM Data Content to file " + filename);
+			} catch (IOException ioe) {
+				logger.log(Level.SEVERE, "Error, when tried to save Overpass OSM Data in file " + filename);
+				logger.log(Level.SEVERE, ioe.toString());
+			}
+				// ok, osm result is in osmresultcontent.toString() available
+			logger.log(Level.FINE, "Dateilänge nach optionalem Entpacken in Bytes: " + osmresultcontent.toString().length());
+
+			int firstnodepos = osmresultcontent.toString().indexOf("<node");
+			if(firstnodepos != -1) {
+				String osmheader = osmresultcontent.toString().substring(0,firstnodepos);
+				int osm_base_pos = osmheader.indexOf("osm_base=");
+				if(osm_base_pos != 1) {
+					int osm_base_valuestartpos = osmheader.indexOf("\"",osm_base_pos);
+					int osm_base_valueendpos = osmheader.indexOf("\"",osm_base_valuestartpos + 1);
+					if((osm_base_valuestartpos != -1) && (osm_base_valueendpos != -1)) { 
+						String osm_base_value = osmheader.substring(osm_base_valuestartpos + 1,osm_base_valueendpos);
+						DateFormat utc_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+						try {
+							Date osmtime = utc_formatter.parse(osm_base_value);
+							System.out.println("gefundener OSM-Datenstand: " + germanyformatter.format(osmtime));
+						} catch (ParseException parseerror) {
+							logger.log(Level.SEVERE, "Couldn't parse OSM DB timestamp from Overpass OSM Data, timestamp was ===" + osm_base_value + "===");					
+							logger.log(Level.SEVERE, parseerror.toString());
+						}
+					}
+				}
+			}
+
+			List<Long> ignoreStreetsBlacklist = getBlacklistStreetOSMIds();
+			
+			
+			Sink sinkImplementation = new Sink() {
+
+				@Override
+				public void release() {
+					logger.log(Level.FINEST, "hallo Sink.release   aktiv !!!");
+				}
+				
+				@Override
+				public void complete() {
+					logger.log(Level.FINEST, "hallo Sink.complete  aktiv ...");//    nodes #"+nodes_count+"   ways #"+ways_count+"   relations #"+relations_count);
+
+					OSMStreet actualOSMStreet = null;
+	    	    		// loop over all osm way objects
+	    	    	for (Map.Entry<Long, Way> waymap: allWays.entrySet()) {
+	    				Long objectid = waymap.getKey();
+		        		Collection<Tag> tags = waymap.getValue().getTags();
+
+							//TODO add all Tags from osm ways, not just highway=*
+						List<OSMTag> osmtags = new ArrayList<>();
+		        		
+		        		HashMap<String,String> keyvalues = new HashMap<String,String>();
+		        		for (Tag tag: tags) {
+		        			keyvalues.put(tag.getKey(), tag.getValue());
+		        			osmtags.add(new OSMTag(tag.getKey(), tag.getValue()));
+		        		}
+
+							// if actual osm-way has been marked as to ignore (by a user in website), 
+							// then ignore it really (doubled named ways, for example, in allotments) 
+						if(ignoreStreetsBlacklist.contains(objectid)) {
+							System.out.println("Warnung-Blacklist: OSM-Weg mit id ===" + 
+								objectid + 
+								"=== wird ignoriert, weil auf Blacklist");
+							continue;
+						}
+			
+						String osmhighwaytype = keyvalues.get("highway");
+						if(!OSMStreet.isValidNamedHighwaytype("highway", osmhighwaytype)) {
+							continue;
+						}
+			
+						actualOSMStreet = new OSMStreet(muniarea, keyvalues.get("name"));
+						actualOSMStreet.setName(actualOSMStreet.normalizeName());
+			
+						
+						System.out.println("* "+objectid + 
+							"===  Orig-DB-Straße ===" + keyvalues.get("name") +
+							"===, normalisiert ===" + actualOSMStreet.getName() + "===");
+
+
+						OSMSegment osmway = new OSMSegment(OSMType.way,
+							objectid, "", osmtags);
+						osmway.setWayFromOsmNodes(allNodes, waymap.getValue().getWayNodes());
+			
+						if((streets.size() > 0) && (streets.containsKey(actualOSMStreet))) {
+							OSMStreet streetsobject = streets.get(actualOSMStreet);
+							streetsobject.addSegment(osmway);
+							streets.put(actualOSMStreet, streetsobject);
+						} else {
+							actualOSMStreet.addSegment(osmway);
+							streets.put(actualOSMStreet, actualOSMStreet);
+						}
+	    			}
+		
+	    	    		// loop over all osm relation objects with addr:housenumber Tag
+	    	    	//for (Map.Entry<Long, Relation> relationmap: allRelations.entrySet()) {
+	    	    	//}
+				}
+				
+				@Override
+				public void initialize(Map<String, Object> metaData) {
+	    	    	for (Map.Entry<String, Object> daten: metaData.entrySet()) {
+	    				String key = daten.getKey();
+	    				Object tags = daten.getValue();
+	    	    	}
+				}
+				
+				@Override
+				public void process(EntityContainer entityContainer) {
+
+			        Entity entity = entityContainer.getEntity();
+			        if (entity instanceof Node) {
+			            //do something with the node
+			        	//nodes_count++;
+
+		    			availableNodes.set(entity.getId());
+
+						NodeContainer nodec = (NodeContainer) entityContainer;
+						Node node = nodec.getEntity();
+						//System.out.println("Node lon: "+node.getLongitude() + "  lat: "+node.getLatitude()+"===");
+
+						allNodes.put(entity.getId(), node);
+			        } else if (entity instanceof Way) {
+			        	//ways_count++;
+			        	
+		    			availableWays.set(entity.getId());
+
+						WayContainer wayc = (WayContainer) entityContainer;
+						Way way = wayc.getEntity();
+		    			allWays.put(entity.getId(), way);
+			        
+			        } else if (entity instanceof Relation) {
+			        	// do nothing to collection relations
+			        }
+				}
+			};
+			
+			RunnableSource osmfilereader;
+
+
+			File tempfile = null;
+			try {
+			    // Create temp file.
+			    tempfile = File.createTempFile("overpassresult", ".osm");
+			    // Delete temp file when program exits.
+			    tempfile.deleteOnExit();
+			    // Write to temp file
+			    BufferedWriter out = new BufferedWriter(new FileWriter(tempfile));
+			    out.write(osmresultcontent.toString());
+			    out.close();
+			} catch (IOException e) {
+			}	
+//			osmfilereader = new XmlReader(osmFile, true, CompressionMethod.None);
+			osmfilereader = new XmlReader(tempfile, true, CompressionMethod.None);
+
+			osmfilereader.setSink(sinkImplementation);
+
+			Thread readerThread = new Thread(osmfilereader);
+			readerThread.start();
+
+			while (readerThread.isAlive()) {
+		        readerThread.join();
+			}
+		} catch (OsmosisRuntimeException osmosiserror) {
+			logger.log(Level.SEVERE, "Osmosis runtime Error ...");
+			logger.log(Level.SEVERE, osmosiserror.toString());
+	    } catch (InterruptedException e) {
+	    	logger.log(Level.WARNING, "Execution of type InterruptedException occured, details follows ...");
+			logger.log(Level.WARNING, e.toString());
+	        /* do nothing */
+	    } catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+	    	logger.log(Level.SEVERE, "Execution of type InterruptedException occured, details follows ...");
+			logger.log(Level.SEVERE, e.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+	    	logger.log(Level.SEVERE, "Execution of type InterruptedException occured, details follows ...");
+			logger.log(Level.SEVERE, e.toString());
+		}
+		return streets;
+	}
 		
 				
+		
 	public void storeStreets(MunicipalityArea muniarea, Map<Street, OSMStreet> streets) {
 		List<Long> streetDBIdList = new ArrayList<>();
 
@@ -432,6 +891,8 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			return;
 		}
 
+		String parameter_land = "";
+		String parameter_stadt = "";
 		String parameter_jobname = "";
 		String parameter_officialkeysid = "";
 		String parameter_adminhierarchy = "";
@@ -511,7 +972,6 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 					muniArea = MunicipalityArea.next();
 				}   // loop over all found municipality areas
 
-				java.util.Date gebiete_endtime = new java.util.Date();
 
 /*				System.out.println("Methode komplette Schleifendurchläufe über alle Gebiete in msek: "+(gebiete_endtime.getTime()-gebiete_starttime.getTime()));		// in sek: /1000
 

@@ -1,11 +1,22 @@
 /**
  * 
  */
-package de.regioosm.housenumbercore.util;
+package de.regioosm.housenumbercore;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+
+
+
+
+
+
+
+
+
+
 
 import static org.junit.Assert.*;
 
@@ -15,13 +26,21 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import de.regioosm.housenumbercore.util.Applicationconfiguration;
+import de.regioosm.housenumbercore.util.Country;
+import de.regioosm.housenumbercore.util.Municipality;
+
 /**
  * @author openstreetmap
  *
  */
-public class MunicipalityTest {
+public class MunicipalityJobsTest {
 	private static Connection housenumberConn = null;
 	private static Connection osmdbConn = null;
+
+	private Municipality testmuni = null;
+	
+	private MunicipalityArea testarea = null;
 	
 
 	/**
@@ -30,6 +49,8 @@ public class MunicipalityTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		Applicationconfiguration configuration = new Applicationconfiguration();
+
+		java.util.Date program_starttime = new java.util.Date();
 
 		try {
 			System.out.println("ok, jetzt Class.forName Aufruf ...");
@@ -69,6 +90,7 @@ public class MunicipalityTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		testmuni = new Municipality("Bundesrepublik Deutschland", "Bobingen", "09772125");
 	}
 
 	/**
@@ -80,85 +102,62 @@ public class MunicipalityTest {
 
 	/**
 	 * Test method for {@link de.regioosm.housenumbercore.util.Municipality#Municipality(java.lang.String, java.lang.String, java.lang.String)}.
-	 * @throws Exception 
 	 */
 	@Test
-	public void MunicipalityStringStringStringTest() throws Exception {
-		Country.connectDB(housenumberConn);
-		String ccode = Country.getCountryShortname("Belgium");
-		String searchmuni = "Kno*";
-		String ref = "*";
-		assertEquals(new Municipality(ccode, searchmuni, ref), new Municipality(ccode, searchmuni, ref));
-	}
-
-	@Test( expected = Exception.class )
-	public void existsExceptionTest() throws Exception {
-		Municipality testm = new Municipality("DE", "%", "%");
+	public void MunicipalityStringStringStringTest() {
+		String ccode;
 		try {
-			testm.exists();
+			ccode = Country.getCountryShortname("Belgium");
+			String searchmuni = "Kno*";
+			String ref = "*";
+			assertEquals(new Municipality(ccode, searchmuni, ref), new Municipality(ccode, searchmuni, ref)); 
 		} catch (Exception e) {
-			throw e;
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Test method for {@link de.regioosm.housenumbercore.util.Municipality#search(java.lang.String, java.lang.String, java.lang.String, java.lang.String)}.
-	 * @throws Exception 
 	 */
 	@Test
-	public void SearchTest() throws Exception {
-		Country.connectDB(housenumberConn);
-		String ccode = Country.getCountryShortname("Bundesrepublik Deutschland");
-		String searchmuni = "Augsbur*";
-		String ref = "*";
-		String adminhierarchy = "";
+	public void searchTest() {
+		String ccode;
 		try {
-			assertEquals(1, Municipality.search(ccode, searchmuni, ref, adminhierarchy));
-		} catch (Exception e) {
-			System.out.println("Error in SearchTest(). Details follow ...");
-			e.printStackTrace();
-		} 
+			ccode = Country.getCountryShortname("Belgium");
+
+			String searchmuni = "Kno*";
+			String ref = "*";
+			String adminhierarchy = "";
+			assertEquals(Municipality.search(ccode, searchmuni, ref, adminhierarchy), 1);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	}
 
 	/**
 	 * Test method for {@link de.regioosm.housenumbercore.util.Municipality#next()}.
-	 * @throws Exception 
 	 */
 	@Test
-	public void nextTest() throws Exception {
-		try {
-			Municipality.search("DE", "%", "%", "%");
-		} catch (Exception e) {
-			throw e;
-		}
-		Municipality testm = Municipality.next();
-		assertNotNull(testm);
-
-		testm = Municipality.next();
-		assertNotNull(testm);
-		
-		testm = Municipality.next();
-		assertNotNull(testm);
+	public void nextTest() {
+		fail("Not yet implemented");
 	}
 
 	/**
 	 * Test method for {@link de.regioosm.housenumbercore.util.Municipality#getCountrycode()}.
-	 * @throws Exception 
 	 */
 	@Test
-	public void getCountrycodeTest() throws Exception {
-		Municipality testmuni = new Municipality("BE", "belgiumtesttest", "");
-		assertEquals(testmuni.getCountrycode(), "BE"); 
+	public void getCountrycodeTest() {
+		assertEquals(testmuni.getCountrycode(), "DE"); 
 	}
 
 	/**
 	 * Test method for {@link de.regioosm.housenumbercore.util.Municipality#getName()}.
-	 * @throws Exception 
 	 */
 	@Test
-	public void getNameTest() throws Exception {
-		Municipality testm = new Municipality("DE", "testmuni", "");
-		assertEquals(testm.getName(), "testmuni");
+	public void getNameTest() {
+		fail("Not yet implemented");
 	}
 
 }

@@ -1,13 +1,13 @@
 package de.regioosm.housenumbercore.util;
 
-import java.nio.charset.Charset;
-import java.text.*;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /* origin class was StreetObject.javva from package de.diesei.listofstreets, as of 2018-02-16 */
 
+/**
+ * street representation of a street in a municipality, within DB
+ * @author openstreetmap
+ *
+ */
 public class Street implements Comparable {
 
 
@@ -69,7 +69,6 @@ public class Street implements Comparable {
 		final int EQUAL = 0;
 		final int AFTER = 1;
 
-		if(this == null) return AFTER;
 		if(obj == null) return AFTER;
 
 		if(! (obj instanceof Street))

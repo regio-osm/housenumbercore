@@ -14,7 +14,7 @@ import java.util.List;
  * @version 0.9, 2018-02-20
  * 
  */
-public class Municipality implements Comparable {
+public class Municipality implements Comparable<Municipality> {
 	private static Connection housenumberConn = null;
 
 	/**
@@ -111,15 +111,16 @@ public class Municipality implements Comparable {
 	 * @param municipalityName	Name of municipality, as stored in OSM in boundary polygon in key name
 	 * 
 	 * @param officialRef		country specific, free usable <b>unique</b> identification for municiapality
+	 * @throws Exception 
 	 * @see officialKey
 	 */
-	public Municipality(String countrycode, String municipalityName, String officialRef) {
-		this.countrycode = countrycode;
+	public Municipality(String country, String municipalityName, String officialRef) throws Exception {
+		setCountrycode(country);
 		this.name = municipalityName;
 		this.officialRef = officialRef;
 	}
 	
-	public Municipality(Municipality muni) {
+	public Municipality(Municipality muni) throws Exception {
 		this(muni.countrycode, muni.name, muni.officialRef);
 		setCountryDBId(muni.countryDBId);
 		setMunicipalityDBId(muni.municipalityDBId);
@@ -154,12 +155,18 @@ public class Municipality implements Comparable {
 	 */
 	public static int search(String municipalityCountry, String municipalityName, String officialRef, String adminHierachyTextform) throws Exception {
 		if(housenumberConn == null) {
-			throw new Exception("please first use .connectDB");
+			throw new IllegalStateException("please first use .connectDB");
 		}
 
-		Country.connectDB(housenumberConn);
-		if(Country.getCountryShortname(municipalityCountry).equals(""))
-			throw new Exception("invalid or missing Country");
+		if((municipalityCountry == null) || municipalityCountry.equals("")) {
+			throw new IllegalStateException("missing Country");
+		}
+		
+		String countrycode = municipalityCountry;
+		if(municipalityCountry.length() > 2)
+			countrycode = Country.getCountryShortname(municipalityCountry);
+		if(countrycode.equals(""))
+			throw new IllegalStateException("invalid or missing Country");
 
 		if((municipalityName == null) || municipalityName.equals("")) {
 			municipalityName = "%";
@@ -180,53 +187,60 @@ public class Municipality implements Comparable {
 			// initialize array for results (could be already set by previous search
 		searchResults.clear();
 		searchResultindex = 0;
-		
+
 		String searchMunicipalitiesSql = "";
 		searchMunicipalitiesSql = "SELECT m.id AS muniid, stadt AS name, " +
 			"officialkeys_id AS officialref, gemeindeschluessel_key AS officialkey, land AS country, " +
 			"countrycode, c.id AS countryid, subareasidentifyable, active_adminlevels " +
 			"FROM stadt AS m JOIN land AS c ON m.land_id = c.id " +
-			"WHERE c.land = ? " +
+			"WHERE c.countrycode = ? " +
 			"AND m.stadt like ? " +
 			"AND officialkeys_id like ? " +
 			"AND osm_hierarchy like ?;";
 
-		PreparedStatement searchMunicipalitiesStmt = housenumberConn.prepareStatement(searchMunicipalitiesSql);
-		int stmtindex = 1;
-		searchMunicipalitiesStmt.setString(stmtindex++, municipalityCountry);
-		searchMunicipalitiesStmt.setString(stmtindex++, municipalityName);
-		searchMunicipalitiesStmt.setString(stmtindex++, officialRef);
-		searchMunicipalitiesStmt.setString(stmtindex++, adminHierachyTextform);
-		System.out.println("sql query for municipalities ===" + searchMunicipalitiesStmt.toString() + "===");
-		ResultSet searchMunicipalitiesRs = searchMunicipalitiesStmt.executeQuery();
-		int resultcount = 0;
-			// loop over all found municipalities. store results in internal searchResults Array
-		while( searchMunicipalitiesRs.next() ) {
-			resultcount++;
-			Municipality muni = new Municipality(searchMunicipalitiesRs.getString("countrycode"), 
-				searchMunicipalitiesRs.getString("name"),
-				searchMunicipalitiesRs.getString("officialref"));
-			muni.municipalityDBId = searchMunicipalitiesRs.getLong("muniid");
-			muni.officialKey = searchMunicipalitiesRs.getString("officialkey");
-			if(searchMunicipalitiesRs.getArray("active_adminlevels") != null) {
-				Array templevels = searchMunicipalitiesRs.getArray("active_adminlevels");
-				muni.adminLevels = Arrays.asList((Integer[]) templevels.getArray());
+		try {
+			PreparedStatement searchMunicipalitiesStmt = housenumberConn.prepareStatement(searchMunicipalitiesSql);
+			int stmtindex = 1;
+			searchMunicipalitiesStmt.setString(stmtindex++, countrycode);
+			searchMunicipalitiesStmt.setString(stmtindex++, municipalityName);
+			searchMunicipalitiesStmt.setString(stmtindex++, officialRef);
+			searchMunicipalitiesStmt.setString(stmtindex++, adminHierachyTextform);
+			System.out.println("sql query for municipalities ===" + searchMunicipalitiesStmt.toString() + "===");
+			ResultSet searchMunicipalitiesRs = searchMunicipalitiesStmt.executeQuery();
+			int resultcount = 0;
+				// loop over all found municipalities. store results in internal searchResults Array
+			while( searchMunicipalitiesRs.next() ) {
+				resultcount++;
+				Municipality muni = new Municipality(searchMunicipalitiesRs.getString("countrycode"), 
+					searchMunicipalitiesRs.getString("name"),
+					searchMunicipalitiesRs.getString("officialref"));
+				muni.municipalityDBId = searchMunicipalitiesRs.getLong("muniid");
+				muni.officialKey = searchMunicipalitiesRs.getString("officialkey");
+				if(searchMunicipalitiesRs.getArray("active_adminlevels") != null) {
+					Array templevels = searchMunicipalitiesRs.getArray("active_adminlevels");
+					muni.adminLevels = Arrays.asList((Integer[]) templevels.getArray());
+				}
+				if(	searchMunicipalitiesRs.getString("subareasidentifyable") != null && 
+					searchMunicipalitiesRs.getString("subareasidentifyable").equals("y"))
+					muni.subareasidentifyable = true;
+				else
+					muni.subareasidentifyable = false;
+				if((Municipality.defaultLanguagecode != null) && !Municipality.defaultLanguagecode.equals(""))
+					muni.languagecode = Municipality.defaultLanguagecode;
+				else
+					muni.languagecode = searchMunicipalitiesRs.getString("countrycode");
+				searchResults.add(muni);
 			}
-			if(	searchMunicipalitiesRs.getString("subareasidentifyable") != null && 
-				searchMunicipalitiesRs.getString("subareasidentifyable").equals("y"))
-				muni.subareasidentifyable = true;
-			else
-				muni.subareasidentifyable = false;
-			if((Municipality.defaultLanguagecode != null) && !Municipality.defaultLanguagecode.equals(""))
-				muni.languagecode = Municipality.defaultLanguagecode;
-			else
-				muni.languagecode = searchMunicipalitiesRs.getString("countrycode");
-			searchResults.add(muni);
+			searchMunicipalitiesRs.close();
+			searchMunicipalitiesStmt.close();
+			return resultcount;
 		}
-		searchMunicipalitiesRs.close();
-		searchMunicipalitiesStmt.close();
-		return resultcount;
+		catch( SQLException e) {
+			e.printStackTrace();
+			throw e;
+		}
 	}
+
 
 	/**
 	 * get next municipality from result of the search() call
@@ -283,8 +297,28 @@ public class Municipality implements Comparable {
 		Municipality.defaultLanguagecode = languagecode;
 	}
 	
-	public void setCountrycode(String countrycode) {
-		this.countrycode = countrycode;
+	public void setCountrycode(String countrycode) throws Exception {
+		if((countrycode != null) && (countrycode.length() == 2)) {
+			this.countrycode = countrycode;
+		} else {
+			Country.connectDB(housenumberConn);
+			this.countrycode = Country.getCountryShortname(countrycode);
+		}
+	}
+
+	/**
+	 * parameter country can be either long form of country name
+	 * or two letter ISO Code 3166-1_alpha_2 for Countries
+	 * @param country
+	 * @throws Exception 
+	 */
+	public void setCountry(String country) throws Exception {
+		if((country != null) && (country.length() == 2)) {
+			this.countrycode = country;
+		} else {
+			Country.connectDB(housenumberConn);
+			this.countrycode = Country.getCountryShortname(country);
+		}
 	}
 
 	public void setMunicipalityDBId(long municipalityid) {
@@ -303,7 +337,92 @@ public class Municipality implements Comparable {
 		this.countryDBId = countryid;
 	}
 
+	/**
+	 * Do the municipality exists in housenumber DB?
+	 * There must be exactly one hit, only in this case true returns.
+	 * If more than one hit was found, an exception will be thrown
+	 * @return
+	 * @throws Exception 
+	 */
+	public boolean exists() throws Exception {
+		boolean result = false;
+		
+		String selectMunicipalitySql = "";
+		selectMunicipalitySql = "SELECT m.id AS muniid " +
+			"FROM stadt AS m JOIN land AS c ON m.land_id = c.id " +
+			"WHERE c.countrycode like ? " +
+			"AND m.stadt like ? " +
+			"AND officialkeys_id like ?;";
 
+		try {
+			String officialref = "%";
+			if((this.officialRef != null) && !this.officialRef.equals(""))
+				officialref = this.officialRef;
+			PreparedStatement selectMunicipalityStmt = housenumberConn.prepareStatement(selectMunicipalitySql);
+			int stmtindex = 1;
+			selectMunicipalityStmt.setString(stmtindex++, this.countrycode);
+			selectMunicipalityStmt.setString(stmtindex++, this.name);
+			selectMunicipalityStmt.setString(stmtindex++, officialref);
+			System.out.println("sql query for municipalities ===" + selectMunicipalityStmt.toString() + "===");
+			ResultSet selectMunicipalityRs = selectMunicipalityStmt.executeQuery();
+				// check, if exactly one hit.
+			int resultcount = 0;
+			while( selectMunicipalityRs.next() ) {
+				resultcount++;
+			}
+			selectMunicipalityRs.close();
+			selectMunicipalityStmt.close();
+			
+			if(resultcount == 0)
+				return false;
+			else if(resultcount == 1)
+				return true;
+			else
+				throw new IllegalStateException("Municipality instance is not unique");
+		}
+		catch( SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public void store() throws Exception {
+		
+		if(exists())
+			return;
+
+		try {
+			String insertMunicipalitySql = "INSERT INTO stadt (land_id, stadt, "+
+				"officialkeys_id, osm_hierarchy, " +
+				"subareasidentifyable, housenumberaddition_exactly, officialgeocoordinates) " +
+				"VALUES ((SELECT id FROM land WHERE countrycode = ?), " +
+				"?, ?, ?, ?, ?, ?) RETURNING id;";
+			PreparedStatement insertMunicipalityStmt = housenumberConn.prepareStatement(insertMunicipalitySql);
+			int stmtindex = 1;
+//TODO very simple storage of municipality: must be enhanced with more parameters, which are declared fix below
+			insertMunicipalityStmt.setString(stmtindex++, getCountrycode());
+			insertMunicipalityStmt.setString(stmtindex++, getName());
+			insertMunicipalityStmt.setString(stmtindex++, getOfficialRef());
+			insertMunicipalityStmt.setString(stmtindex++, "");
+			insertMunicipalityStmt.setString(stmtindex++, isSubareasidentifyable() ? "y": "n");
+			insertMunicipalityStmt.setString(stmtindex++, "n");
+			insertMunicipalityStmt.setString(stmtindex++, "n");
+			System.out.println("insert statement for new municipality ===" + insertMunicipalityStmt.toString() + "===");
+
+			ResultSet insertMunicipalityRs = insertMunicipalityStmt.executeQuery();
+			if (insertMunicipalityRs.next()) {
+				setMunicipalityDBId(insertMunicipalityRs.getLong("id"));
+			}
+			insertMunicipalityRs.close();
+			insertMunicipalityStmt.close();
+		}
+		catch( SQLException e) {
+			e.printStackTrace();
+			throw e;
+		}
+		
+	}
+	
 	@Override
 	/**
 	 * return a simple textual representation of the municipality instance 
@@ -364,16 +483,15 @@ public class Municipality implements Comparable {
 	 * method to allow sorting of municipality instances
 	 */
 	@Override
-    public int compareTo(Object obj) {
+    public int compareTo(Municipality other) {
 		final int BEFORE = -1;
 		final int EQUAL = 0;
 		final int AFTER = 1;
 
-		if(obj == null) return AFTER;
+		if(other == null) return AFTER;
 
-		if(! (obj instanceof Municipality))
+		if(!(other instanceof Municipality))
 			return BEFORE;
-		Municipality other = (Municipality) obj;
 		if(this == other) return EQUAL;
 		
 		int comparison = this.countrycode.compareTo(other.countrycode);
@@ -386,6 +504,6 @@ public class Municipality implements Comparable {
 		if (comparison != EQUAL) return comparison;
 
 		return EQUAL;
-	}	
+	}
 
 }

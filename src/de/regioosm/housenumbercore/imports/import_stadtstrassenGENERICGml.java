@@ -41,9 +41,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import de.regioosm.housenumbercore.Reference;
-import de.regioosm.housenumbercore.util.Address;
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
-import de.regioosm.housenumbercore.util.ImportHausnummerliste;
+import de.regioosm.housenumbercore.util.ImportAddress;
 
 
 /**
@@ -101,10 +100,7 @@ public class import_stadtstrassenGENERICGml {
 	 * DB connection to Hausnummern
 	 */
 	private static Connection conHausnummern = null;
-	/**
-	 * collect all housenumbers, as found in input file. Later, the housenumbers will be stored from this structure to DB. 
-	 */
-	private static ImportHausnummerliste housenumberlist = new ImportHausnummerliste();
+
 	/**
 	 * signals not set the id of a city.
 	 */
@@ -120,8 +116,7 @@ public class import_stadtstrassenGENERICGml {
 
 	static HashMap<String, Reference> references = new HashMap<String, Reference>();
 	
-		// store one time evaluated id of every street to prevent uneccesary DB read request
-	private static TreeMap<String,Long> strasseid_array = new TreeMap<String,Long>();
+
 
 //TODO use original form import_stadtstrassen
 		// copied 2015-05-24 from import_stadtstrassen.java
@@ -271,7 +266,7 @@ String hierarchy = "";
 
 
 	private static Integer analyseAddresses(Document xmldocument) {
-		Address address = new Address();
+		ImportAddress address = new ImportAddress();
 		Integer numberAddresses = 0;
 
 		Date method_starttime = new Date();
@@ -405,7 +400,7 @@ String hierarchy = "";
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
 				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
-		  	    		address.setSubId(actnode.getTextContent().trim());
+		  	    		address.setSubareaId(actnode.getTextContent().trim());
 				    }
 		    	}
 		    	
@@ -493,7 +488,6 @@ String hierarchy = "";
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
 				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
-		  	    		address.setDataid(actnode.getTextContent().trim());
 		  	    		address.addKeyvalue("temp_iip_identyfikator", actnode.getTextContent().trim());
 				    }
 		    	}
@@ -525,7 +519,7 @@ String hierarchy = "";
 						for(int attri = 0; attri < act_point_attributes.getLength(); attri++) {
 							Attr act_attribute = (Attr) act_point_attributes.item(attri);
 							if(act_attribute.getName().equals("srsName")) {
-								address.setLonlat_srid(act_attribute.getValue().trim().substring(act_attribute.getValue().trim().lastIndexOf(":") + 1));
+								address.setSourceSrid(act_attribute.getValue().trim().substring(act_attribute.getValue().trim().lastIndexOf(":") + 1));
 							}
 						}
 	
@@ -579,10 +573,10 @@ String hierarchy = "";
 									
 				    				coordstmt.setDouble(1, xpos);
 				    				coordstmt.setDouble(2, ypos);
-				    				coordstmt.setInt(3, Integer.parseInt(address.getLonlat_srid()));
+				    				coordstmt.setInt(3, Integer.parseInt(address.getSourceSrid()));
 				    				coordstmt.setDouble(4, xpos);
 				    				coordstmt.setDouble(5, ypos);
-				    				coordstmt.setInt(6, Integer.parseInt(address.getLonlat_srid()));
+				    				coordstmt.setInt(6, Integer.parseInt(address.getSourceSrid()));
 				    				ResultSet rs = coordstmt.executeQuery();
 				    				if (rs.next()) {
 										address.setLocation(rs.getDouble("lon"), rs.getDouble("lat"));
@@ -1200,8 +1194,6 @@ String bezirk = "";
 		    nowtime = new Date();
 			System.out.println("Programm-Dauer bis Ende rausschreiben txt-Datei in sek: " + (nowtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 			
-			//housenumberlist.storeToDB();
-
 		    nowtime = new Date();
 			System.out.println("Programm-Dauer bis Ende DB-Speicherung in sek: " + (nowtime.getTime() - timeProgramStarttime.getTime()) / 1000);
 			
