@@ -174,7 +174,7 @@ public class Municipality implements Comparable {
 		if((adminHierachyTextform == null) || adminHierachyTextform.equals("")) {
 			adminHierachyTextform = "%";
 		} else  if(adminHierachyTextform.indexOf("*") != -1) {
-			adminHierachyTextform = adminHierachyTextform.replace("*",  "%*");
+			adminHierachyTextform = adminHierachyTextform.replace("*",  "%");
 		}
 
 			// initialize array for results (could be already set by previous search

@@ -1654,7 +1654,7 @@ CREATE OR REPLACE VIEW theoeval201711
   END  AS theo_adressenabdeckung
   FROM theoevaluations where tstamp > '2017-12-01' and tstamp < '2017-12-06';
 
-CREATE OR REPLACE VIEW theoeval201712
+CREATE MATERIALIZED VIEW theoeval201712
   AS SELECT 
   id, land, stadt, gemeinde_id, flaechekm2, bevoelkerungszahl, gliederungstadtland, anzahl_osmadressen, 
   anzahl_osmadressennodes, anzahl_osmadressenways, anzahl_osmadressenrels, 
@@ -2442,7 +2442,7 @@ CREATE OR REPLACE VIEW theoeval201711diff201710
   AND te2.land = te1.land
   AND te2.land = 'Bundesrepublik Deutschland';
 
-CREATE OR REPLACE VIEW theoeval201712diff201711
+CREATE MATERIALIZED VIEW theoeval201712diff201711
   AS SELECT 
   te2.land AS land, te2.stadt AS stadt,
   te2.gemeinde_id AS gemeinde_id, te2.flaechekm2 AS flaechekm2, te2.bevoelkerungszahl AS bevoelkerungszahl, te2.gliederungstadtland AS gliederungstadtland,
