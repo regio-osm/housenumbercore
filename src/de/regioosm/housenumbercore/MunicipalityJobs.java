@@ -511,7 +511,6 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 					muniArea = MunicipalityArea.next();
 				}   // loop over all found municipality areas
 
-				java.util.Date gebiete_endtime = new java.util.Date();
 
 /*				System.out.println("Methode komplette Schleifendurchläufe über alle Gebiete in msek: "+(gebiete_endtime.getTime()-gebiete_starttime.getTime()));		// in sek: /1000
 

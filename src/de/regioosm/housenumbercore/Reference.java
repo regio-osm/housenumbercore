@@ -1,9 +1,5 @@
 package de.regioosm.housenumbercore;
 
-import java.util.Map;
-import java.util.TreeMap;
-
-
 /*
 
 	V1.0, 08.08.2013, Dietmar Seifert

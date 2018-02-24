@@ -120,8 +120,7 @@ public class import_stadtstrassenGENERICGml {
 
 	static HashMap<String, Reference> references = new HashMap<String, Reference>();
 	
-		// store one time evaluated id of every street to prevent uneccesary DB read request
-	private static TreeMap<String,Long> strasseid_array = new TreeMap<String,Long>();
+
 
 //TODO use original form import_stadtstrassen
 		// copied 2015-05-24 from import_stadtstrassen.java

@@ -144,7 +144,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.List;
@@ -586,8 +586,7 @@ public class TheoreticalHousenumbers {
 
 		final String TAG_ADDRESSINCOMPLETE = "___temp___addressincomplete";
 		final String TAG_ADDRESSASSOCSTREETADDED = "___temp___addressstreetfromassociatedrel";	// Tag, that will be added to addresses, where addr:street was set in osm via associatedStreet Relation 
-		
-		java.util.Date time_evalation = null;
+
 		DateFormat date_formatter = new SimpleDateFormat("yyyy-MM-dd");		// in iso8601 format, with timezone
 		DateFormat time_formatter_iso8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");		// in iso8601 format, with timezone
 
@@ -604,7 +603,6 @@ public class TheoreticalHousenumbers {
 		Integer anzahl_polygons_addrstreet_treffer = 0;
 		Integer anzahl_nodes_associatedstreet_versuche = 0;
 		Integer anzahl_nodes_associatedstreet_treffer = 0;
-		Integer anzahl_ways_associatedstreet_versuche = 0;
 		Integer anzahl_ways_associatedstreet_treffer = 0;
 		Integer anzahl_polygons_associatedstreet_versuche = 0;
 		Integer anzahl_polygons_associatedstreet_treffer = 0;
@@ -777,7 +775,6 @@ con_mapnik = DriverManager.getConnection(url_mapnik, "gis", configuration.db_osm
 				anzahl_polygons_addrstreet_treffer = 0;
 				anzahl_nodes_associatedstreet_versuche = 0;
 				anzahl_nodes_associatedstreet_treffer = 0;
-				anzahl_ways_associatedstreet_versuche = 0;
 				anzahl_ways_associatedstreet_treffer = 0;
 				anzahl_polygons_associatedstreet_versuche = 0;
 				anzahl_polygons_associatedstreet_treffer = 0;

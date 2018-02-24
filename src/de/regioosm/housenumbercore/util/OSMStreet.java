@@ -212,7 +212,6 @@ public class OSMStreet extends Street implements Comparable {
 		final int EQUAL = 0;
 		final int AFTER = 1;
 
-		if(this == null) return AFTER;
 		if(obj == null) return AFTER;
 
 		if(! (obj instanceof OSMStreet))
