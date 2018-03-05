@@ -1,1 +1,5 @@
-language: java -source 7
+language: java
+jdk:
+  - oraclejdk8
+  - oraclejdk9
+  - openjdk7
