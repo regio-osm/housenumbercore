@@ -1,7 +1,11 @@
 package de.regioosm.housenumbercore.util;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import org.openstreetmap.osmosis.core.domain.v0_6.Node;
+import org.openstreetmap.osmosis.core.domain.v0_6.WayNode;
 
 public class OSMSegment {
 	/**
@@ -21,7 +25,7 @@ public class OSMSegment {
 	 * CAUTION: only a very small subset of tags are stored in the list,
 	 * which are necessary in this model
 	 */
-	protected OSMTagList tags = null;
+	protected List<OSMTag> tags = new ArrayList<>();
 	/**
 	 * Way of the street segment from OSM, in Postgis Well-Known-Text Format
 	 */
@@ -41,12 +45,32 @@ public class OSMSegment {
 		this.tags = null;
 	}
 	
-	public OSMSegment(OSMType type, long osmid, String wayAsWKT, OSMTagList tags) {
+	public OSMSegment(OSMType type, long osmid, String wayAsWKT, List<OSMTag> tags) {
 		this(type, osmid, wayAsWKT);
 		setTags(tags);
 	}
 
-	public void setTags(OSMTagList tags) {
+	/**
+	 * build OSM Way als well known text postgis representation
+	 * @param allNodes list of all OSM nodes
+	 * @param waynodes list of OSM nodes, which are used to construct the way here
+	 */
+	public void setWayFromOsmNodes(Map<Long, Node> allNodes, List<WayNode> waynodes) {
+		String result = "";
+
+		for (WayNode waynode: waynodes) {
+			Node actnode = allNodes.get(waynode.getNodeId());
+			if(!result.equals(""))
+				result += ",";
+			result += actnode.getLongitude() + " " + actnode.getLatitude();
+		}
+		if(!result.equals(""))
+			result = "LINESTRING(" + result + ")";
+		System.out.println(" generated linestring ===" + result + "===");
+		this.geometryWKT = result;
+	}
+	
+	public void setTags(List<OSMTag> tags) {
 		this.tags = tags;
 	}
 }

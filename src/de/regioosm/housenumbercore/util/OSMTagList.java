@@ -13,4 +13,13 @@ public class OSMTagList {
 	public OSMTagList(OSMTag tag) {
 		this.tags.add(tag);
 	}
+	
+	public void add(OSMTag tag) {
+		this.tags.add(tag);
+	}
+
+	public void add(String key, String value) {
+		OSMTag tag = new OSMTag(key, value);
+		this.tags.add(tag);
+	}
 }

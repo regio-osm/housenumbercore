@@ -3,6 +3,11 @@ package de.regioosm.housenumbercore.util;
 
 /* origin class was StreetObject.javva from package de.diesei.listofstreets, as of 2018-02-16 */
 
+/**
+ * street representation of a street in a municipality, within DB
+ * @author openstreetmap
+ *
+ */
 public class Street implements Comparable {
 
 

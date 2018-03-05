@@ -1,5 +1,6 @@
 package de.regioosm.housenumbercore.util;
 
+import java.sql.Connection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -24,41 +25,49 @@ import java.util.TreeMap;
 	
 
 public class Address {
-	private String	country = "";
-	private String	municipality = "";
-	private String	municipalityId = "";
-	private String	subArea = "";
-	private String	subId = "";
-	private String	street = "";
-	private String	place = "";					// in cases, the housenumber belongs not to a streets, but instead to a place, like in hamlets and very small villages
-	private String	housenumber = "";
-	private String	housenumberaddition = "";
-	private Double	lon = 999D;
-	private Double	lat = 999D;
-	private String	lonlat_source = "";
-	private String	lonlat_srid = "";
-	private String	dataid = "";
-	private String	postcode = "";
-	private TreeMap<String,String> keyvalues = new TreeMap<String,String>();
+	protected static Connection housenumberConn = null;
+
+	/**
+	 * fixed length of a sortable housenumber, for correct sorting of a housenumber. Should be set to at least 4.
+	 */
+	protected static final int HAUSNUMMERSORTIERBARLENGTH = 4;
+	
+	public static final double lonUnset = 999.0D;
+	public static final double latUnset = 999.0D;
+
+	
+	protected String	countrycode = null;
+	protected String	country = null;
+	protected String	municipality = null;
+	protected String	subArea = null;
+	protected String	subareaId = null;
+	protected String	street = null;
+	protected String	place = null;					// in cases, the housenumber belongs not to a streets, but instead to a place, like in hamlets and very small villages
+	protected String	housenumber = null;
+	protected Double	lon = lonUnset;
+	protected Double	lat = latUnset;
+	protected String	sourcesrid = null;
+	protected String	coordinatesourcetext = null;
+	protected String	postcode = null;
+	protected TreeMap<String,String> keyvalues = new TreeMap<String,String>();
 
 	static Integer nodeid = 0;
     
     public Address()  {
-		setCountry("");
-		setMunicipality("");
-		setMunicipalityId("");
-		setSubArea("");
-		setSubId("");
-		setStreet("");
-		setPlace("");
-		setHousenumber("");
-		setHousenumberaddition("");
-		setLocation(999D, 999D);
-		setLonlat_source("");
-		setLonlat_srid("");
-	    setDataid("");
-	    setPostcode("");
-	    keyvalues.clear();
+	}
+    
+    public Address(String country, String postcode, String municipality, 
+    	String subarea, String street, String housenumber) throws Exception {
+    	setCountry(country);
+    	this.postcode = postcode;
+    	this.municipality = municipality;
+    	this.subArea = subarea;
+    	this.street = street;
+    	this.housenumber = housenumber;
+    }
+
+	public static void connectDB(Connection housenumberConn) {
+		Address.housenumberConn = housenumberConn;
 	}
     
     public String printosm() {
@@ -71,18 +80,14 @@ public class Address {
     		output += "<tag k='addr:place' v='" + getPlace().replace("'", "&quot;") + "' />\n";
     	if(! getHousenumber().equals(""))
     		output += "<tag k='addr:housenumber' v='" + getHousenumber().replace("'", "&quot;") + "' />\n";
-    	if(! getHousenumberaddition().equals(""))
-    		output += "<tag k='temp_addr:housenumberaddition' v='" + getHousenumberaddition().replace("'", "&quot;") + "' />\n";
     	if(! getPostcode().equals(""))
     		output += "<tag k='addr:postcode' v='" + getPostcode().replace("'", "&quot;") + "' />\n";
     	if(! getMunicipality().equals(""))
     		output += "<tag k='addr:city' v='" + getMunicipality().replace("'", "&quot;") + "' />\n";
-    	if(! getMunicipality().equals("") && ! getMunicipalityId().equals(""))
-    		output += "<tag k='temp_cityid' v='" + getMunicipalityId().replace("'", "&quot;") + "' />\n";
     	if(! getSubArea().equals(""))
     		output += "<tag k='temp_subarea' v='" + getSubArea().replace("'", "&quot;") + "' />\n";
-    	if(! getSubArea().equals("") && ! getSubId().equals(""))
-    		output += "<tag k='temp_subid' v='" + getSubId().replace("'", "&quot;") + "' />\n";
+    	if(! getSubArea().equals("") && ! getSubareaId().equals(""))
+    		output += "<tag k='temp_subareaid' v='" + getSubareaId().replace("'", "&quot;") + "' />\n";
     	
     	for (Map.Entry<String,String> entry : keyvalues.entrySet()) {
 			String key = entry.getKey();
@@ -98,13 +103,14 @@ public class Address {
     public String printtxt() {
     	String output = "";
 
-    	output += getDataid() + "\t" + "-1" + "\t";
+    	output += "-1" + "\t";
     	if(!getStreet().equals(""))
     		output += getStreet();
     	else if(!getPlace().equals(""))
     		output += getPlace();
-    	output += "\t" + getHousenumber() + "\t" +	getHousenumberaddition() + "\t" + getPostcode() + "\t" + getMunicipalityId() + "\t" + getMunicipality()
-    		+ "\t" + getSubArea() + "\t" + getSubId() + "\t" + "EPSG:" + getLonlat_srid() + "\t" + getLon() + "\t" + lat + "\n";
+    	output += "\t" + getHousenumber() + "\t" + getPostcode() + "\t" + getMunicipality() +
+    		"\t" + getSubArea() + "\t" + getSubareaId() + "\t" + "EPSG:" + getSourceSrid() + 
+    		"\t" + getLon() + "\t" + getLat() + "\n";
         return output;
     }
 
@@ -112,21 +118,18 @@ public class Address {
 	 * @return the land
 	 */
 	public String getCountry() {
-		return country;
+		return this.country;
 	}
 
+	public String getCountrycode() {
+		return this.countrycode;
+	}
+	
 	/**
 	 * @return the municipality
 	 */
 	public String getMunicipality() {
 		return municipality;
-	}
-
-	/**
-	 * @return the municipalityId
-	 */
-	public String getMunicipalityId() {
-		return municipalityId;
 	}
 
 	/**
@@ -137,10 +140,10 @@ public class Address {
 	}
 
 	/**
-	 * @return the municipalityId
+	 * @return the subarea ID
 	 */
-	public String getSubId() {
-		return subId;
+	public String getSubareaId() {
+		return subareaId;
 	}
 
 	/**
@@ -164,12 +167,6 @@ public class Address {
 		return housenumber;
 	}
 
-	/**
-	 * @return the housenumberaddition
-	 */
-	public String getHousenumberaddition() {
-		return housenumberaddition;
-	}
 
 	/**
 	 * @return the lon
@@ -186,24 +183,17 @@ public class Address {
 	}
 
 	/**
+	 * @return the source SRID (postgresql coordinate system)
+	 */
+	public String getSourceSrid() {
+		return sourcesrid;
+	}
+
+	/**
 	 * @return the lonlat_source
 	 */
-	public String getLonlat_source() {
-		return lonlat_source;
-	}
-
-	/**
-	 * @return the lonlat_srid
-	 */
-	public String getLonlat_srid() {
-		return lonlat_srid;
-	}
-
-	/**
-	 * @return the dataid
-	 */
-	public String getDataid() {
-		return dataid;
+	public String getCoordinatesSourceText() {
+		return coordinatesourcetext;
 	}
 
 	/**
@@ -224,11 +214,54 @@ public class Address {
 
 	/**
 	 * @param country the country to set
+	 * @throws Exception 
 	 */
-	public void setCountry(String country) {
-		this.country = country;
+	public void setCountry(String country) throws Exception {
+		if((country == null) || country.equals("")) {
+			this.countrycode = null;
+			this.country = null;
+			return;
+		}
+		
+		Country.connectDB(housenumberConn);
+		if((country != null) && (country.length() == 2)) {
+			this.countrycode = country;
+			this.country = Country.getCountryLongname(country);
+		} else {
+			this.country = country;
+			this.countrycode = Country.getCountryShortname(country);
+		}
 	}
 
+	public void setCountrycode(String countrycode) throws Exception {
+		if((countrycode == null) || countrycode.equals("")) {
+			this.countrycode = null;
+			this.country = null;
+			return;
+		}
+
+		Country.connectDB(housenumberConn);
+		if(countrycode.length() == 2) {
+			this.countrycode = countrycode;
+			this.country = Country.getCountryLongname(countrycode);
+		} else {
+			this.country = countrycode;
+			this.countrycode = Country.getCountryShortname(countrycode);
+		}
+	}
+	
+	public void setLat(Double latitude) {
+		this.lat = latitude;
+	}
+
+	public void setLon(Double longitude) {
+		this.lon = longitude;
+	}
+
+	public void setLonLat(Double longitude, Double latitude) {
+		setLon(longitude);
+		setLat(latitude);
+	}
 	/**
 	 * @param municipality the municipality to set
 	 */
@@ -237,24 +270,17 @@ public class Address {
 	}
 
 	/**
-	 * @param municipalityId the municipalityId to set
-	 */
-	public void setMunicipalityId(String municipalityId) {
-		this.municipalityId = municipalityId;
-	}
-
-	/**
-	 * @return the municipality
+	 * set sub area name
 	 */
 	public void setSubArea(String subarea) {
 		this.subArea = subarea;
 	}
 
 	/**
-	 * @return the municipalityId
+	 * set sub area ID
 	 */
-	public void setSubId(String subid) {
-		this.subId = subid;
+	public void setSubareaId(String subareaid) {
+		this.subareaId = subareaid;
 	}
 
 	/**
@@ -269,13 +295,6 @@ public class Address {
 	 */
 	public void setHousenumber(String housenumber) {
 		this.housenumber = housenumber;
-	}
-
-	/**
-	 * @param housenumberaddtion the housenumberaddition to set
-	 */
-	public void setHousenumberaddition(String housenumberaddition) {
-		this.housenumberaddition = housenumberaddition;
 	}
 
 	/**
@@ -294,26 +313,20 @@ public class Address {
 	}
 
 	/**
-	 * @param lonlat_source the lonlat_source to set
+	 * @param sourcesrid the lonlat_source to set
 	 */
-	public void setLonlat_source(String lonlat_source) {
-		this.lonlat_source = lonlat_source;
+	public void setSourceSrid(String sourcesrid) {
+		this.sourcesrid = sourcesrid;
 	}
+//TODO should it be tested here to DB for valid value?
 
 	/**
-	 * @param lonlat_srid the lonlat_srid to set
+	 * @param 
 	 */
-	public void setLonlat_srid(String lonlat_srid) {
-		this.lonlat_srid = lonlat_srid;
+	public void setCoordinatesSourceText(String coordinatessourcetext) {
+		this.coordinatesourcetext = coordinatessourcetext;
 	}
-
-	/**
-	 * @param dataid the dataid to set
-	 */
-	public void setDataid(String dataid) {
-		this.dataid = dataid;
-	}
-
+	
 	/**
 	 * @param postcode the postcode to set
 	 */
@@ -321,6 +334,30 @@ public class Address {
 		this.postcode = postcode;
 	}
 
+	public String getHousenumberSortable() {
+		String result = "";
+			// Hack: hier werden die Hausnummern normiert und damit über
+			// normale Select order by sortierbar from Hausnummern
+			// 4stellig mit führenden Nullen 1=0001  47 1/2=0047 1/2  11 1/128b = 0011 1/128b
+		int numstellen = 0;
+		if((housenumber != null) && !housenumber.equals("")) {
+			for (int posi = 0; posi < housenumber.length(); posi++) {
+				int charwert = housenumber.charAt(posi);
+				if ((charwert >= '0') && (charwert <= '9')) {
+					numstellen++;
+				} else {
+					break;
+				}
+			}
+		}
+		for (int anzi = 0; anzi < (HAUSNUMMERSORTIERBARLENGTH - numstellen); anzi++) {
+			result += "0";
+		}
+		result += housenumber;
+		
+		return result;
+	}
+		
 	/**
 	 * @param key the key part of key-value pair to set
 	 * @param value the value part of key-value pair to set
