@@ -1,2 +1,1 @@
-language: java
--source 7
+language: java -source 7
