@@ -25,7 +25,6 @@ package de.regioosm.housenumbercore.imports;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -34,16 +33,18 @@ import java.util.HashMap;
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.Country;
+import de.regioosm.housenumbercore.util.CsvReader;
 import de.regioosm.housenumbercore.util.HousenumberList;
 import de.regioosm.housenumbercore.util.ImportAddress;
 import de.regioosm.housenumbercore.util.Municipality;
+import de.regioosm.housenumbercore.util.CsvReader.HEADERFIELD;
 
 /**
  * Import or update of a housenumber list from a municipality.
  * @author Dietmar Seifert
  *
  */
-public class HousenumberListImport {
+public class CsvListImport {
 
 	/**
 	 * get all configuration items for the application: mostly DB-related and filesystem
@@ -244,6 +245,9 @@ public class HousenumberListImport {
 			HousenumberList.connectDB(housenumberConn);
 			
 			try {
+					// if importfile has no direct information about municipality name, 
+					// but a reference id instead, and the extra file with 
+					// municipality ref => municipality name is available, read it now
 				if(!parameterMunicipalityIdListfilename.equals("")) {
 					String municipalityIdlistfilename = configuration.application_datadir + "/" + parameterMunicipalityIdListfilename;
 					BufferedReader municipalityIdlistfilereader = new BufferedReader(new FileReader(municipalityIdlistfilename));
@@ -266,6 +270,9 @@ public class HousenumberListImport {
 					housenumberlist.setMunicipalityIDList(municipalityIdList);
 				}
 
+					// if importfile has no direct information about municipality subarea name, 
+					// but a reference id instead, and the extra file with 
+					// municipality subarea ref => municipality subarea name is available, read it now
 				if(!parameterSubMunicipalityIdListfilename.equals("")) {
 					String submunicipalityIdlistfilename = configuration.application_datadir + "/" + parameterSubMunicipalityIdListfilename;
 					BufferedReader submunicipalityIdlistfilereader = new BufferedReader(new FileReader(submunicipalityIdlistfilename));
@@ -290,6 +297,9 @@ public class HousenumberListImport {
 					housenumberlist.setSubareaMunicipalityIDList(submunicipalityIdList);
 				}
 
+					// if importfile has no direct information about street name, 
+					// but a reference id instead, and the extra file with 
+					// street ref => street name is available, read it now
 				if(!parameterStreetIdListfilename.equals("")) {
 					String streetidlistfilename = configuration.application_datadir + "/" + parameterStreetIdListfilename;
 					BufferedReader streetidlistfilereader = new BufferedReader(new FileReader(streetidlistfilename));
@@ -320,7 +330,10 @@ public class HousenumberListImport {
 				housenumberlist.setFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
 				
-				CsvReader csvreader = new CsvReader(housenumberlist, parameterImportdateiname, "UTF-8");	// "ISO-8859-1"
+				CsvReader csvreader = new CsvReader(housenumberlist, "ISO-8859-1");	// "UTF-8"
+csvreader.setHeaderfield(HEADERFIELD.street, 3);
+csvreader.setHeaderfield(HEADERFIELD.housenumber, 4);
+csvreader.setHeaderfield(HEADERFIELD.housenumberaddition, 5);
 				ImportAddress address = null;
 				try {
 					while((address = csvreader.next()) != null) {

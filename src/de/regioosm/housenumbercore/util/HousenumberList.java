@@ -37,8 +37,8 @@ public class HousenumberList {
 	 * DB-internal Id of the actual country, the housenumber list belongs to
 	 */
 	private String countrycode = "";
-	public String hierarchy = "";
-	public long countryDBId = COUNTRYIDUNSET;	// should be deleted completely
+	private String hierarchy = "";
+	private long countryDBId = COUNTRYIDUNSET;	// should be deleted completely
 	
 	private String municipality = "";
 	/**

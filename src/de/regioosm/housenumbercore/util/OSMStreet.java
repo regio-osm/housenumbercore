@@ -171,7 +171,7 @@ public class OSMStreet extends Street implements Comparable {
 
 	public static boolean isValidNamedHighwaytype(String osmhighwaykey, String osmhighwayvalue) {
 		if(validHighwayTypes == null)
-			return false;
+			setDefaultValidHighwayTypes();
 
 		for(int typesindex = 0; typesindex < validHighwayTypes.size(); typesindex++) {
 			OSMTagList actualtaglist = validHighwayTypes.get(typesindex);
@@ -192,51 +192,5 @@ public class OSMStreet extends Street implements Comparable {
 		output += ", in " + this.getMunicipality().toString();
 
 		return output;
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		boolean result = false;
-		if(! (obj instanceof OSMStreet))
-			return result;
-		OSMStreet other = (OSMStreet) obj;
-		if(	this.getMunicipality().equals(other.getMunicipality()) &&
-			(this.getName().equals(other.getName()))) {
-			return true;
-		}
-		return false;
-	}
-	
-	@Override
-	public int hashCode() {
-		int hashCode = 13;
-		int multi = 31;
-		hashCode += super.hashCode();
-		hashCode *= multi + this.getName().hashCode();
-
-		return hashCode;
-	}
-
-	@Override
-    public int compareTo(Object obj) {
-		final int BEFORE = -1;
-		final int EQUAL = 0;
-		final int AFTER = 1;
-
-		if(obj == null) return AFTER;
-
-		if(! (obj instanceof OSMStreet))
-			return BEFORE;
-		OSMStreet other = (OSMStreet) obj;
-		if(this == other) return EQUAL;
-
-		int comparison = this.getMunicipality().compareTo(other.getMunicipality());
-		if(comparison != EQUAL) return comparison;
-
-		comparison = this.getName().compareTo(other.getName());
-		if(comparison != EQUAL)
-			return comparison;
-
-		return EQUAL;
 	}
 }

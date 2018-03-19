@@ -93,9 +93,9 @@ public class HousenumberListDownload {
 
 
 		
-		//String overpass_url = "http://www.stadtplan.hagen.de/StrVz/Hauskoordinaten.csv";
+		String overpass_url = "http://www.stadtplan.hagen.de/StrVz/Hauskoordinaten.csv";
 		//String overpass_url = "http://openstreetmap.lu/luxembourg-addresses.csv";
-		String overpass_url = "http://daten-hamburg.de/geographie_geologie_geobasisdaten/ALKIS_Adressen/ALKIS_Adressen_HH_2018-01-02.zip";
+		//String overpass_url = "http://daten-hamburg.de/geographie_geologie_geobasisdaten/ALKIS_Adressen/ALKIS_Adressen_HH_2018-01-02.zip";
 /*		String overpass_queryurl = "interpreter?data=";
 		String overpass_query = "[timeout:3600][maxsize:1073741824]\n"
 			+ "[out:xml];\n"

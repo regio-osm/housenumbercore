@@ -241,25 +241,10 @@ System.out.println("osm-ids ===" + street.getOSMIdsAsString() + "===");
 			OSMStreet street = new OSMStreet(m, "Hauptstraße");
 
 			assertTrue(street.toString().indexOf("Hauptstraße") != -1);
-			assertTrue(street.toString().indexOf("textCity") != -1);
+			assertTrue(street.toString().indexOf("testCity") != -1);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	@Test
-	public void hashCodeTest() {
-		fail("Not yet implemented");
-	}
-
-	@Test
-	public void equalsObjectTest() {
-		fail("Not yet implemented");
-	}
-
-	@Test
-	public void compareToTest() {
-		fail("Not yet implemented");
 	}
 }

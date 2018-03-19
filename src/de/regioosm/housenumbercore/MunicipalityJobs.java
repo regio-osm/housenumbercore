@@ -68,12 +68,23 @@ import de.regioosm.housenumbercore.util.OSMSegment.OSMType;
  */
 public class MunicipalityJobs {
 
+	private static final String OVERPASSURL = "http://overpass-api.de/api/";
+	//private static final String OVERPASSURL = "http://overpass.osm.rambler.ru/cgi/";
+	//private static final String OVERPASSURL = "http://dev.overpass-api.de/api_mmd/";
+
 	private static Connection housenumberConn = null;
 	private static Connection osmdbConn = null;
+
+
+	private static boolean useOverpassForQueries = false;
 	
 	private long jobDBId = -1L;
 
 	static Applicationconfiguration configuration = new Applicationconfiguration();
+
+	public MunicipalityJobs() {
+		
+	}
 
 	private static class logger {
 //TODO replace with real logger
@@ -82,6 +93,12 @@ public class MunicipalityJobs {
 		}
 	}
 
+	public static void setOverpassForEvaluation(boolean useoverpass) {
+		useOverpassForQueries = useoverpass;
+	}
+	
+
+	
 	public void generateJob(MunicipalityArea muniarea) {
 
 		try {
@@ -210,12 +227,14 @@ public class MunicipalityJobs {
 
 	
 	/**
-	 * get OSM streets for municipality area - either from local osm2pgsql DB or from OSM Overpass live - depends on internal configuration
+	 * get OSM streets for municipality area - either from local osm2pgsql DB or from OSM Overpass live - depends on user setting via setOverpassForEvaluation
 	 * @param muniarea
 	 */
 	public Map<Street, OSMStreet> getOSMStreets(MunicipalityArea muniarea) {
-		//return getOSMStreetsFromDB(muniarea);
-		return getOSMStreetsFromOverpass(muniarea);
+		if(useOverpassForQueries)
+			return getOSMStreetsFromOverpass(muniarea);
+		else
+			return getOSMStreetsFromDB(muniarea);
 	}
 
 		
@@ -231,8 +250,6 @@ public class MunicipalityJobs {
 //TODO evtl. nicht nur pur Key name suchen, sondern auch einige Varianten a la loc_name, alt_name, official_name, name:de etc.
 //TODO Auswertungsproblem: hier werden nur highway=* gefunden. pure Plätze ohne highway=* oder ähnliche Konstrukte (z.B. place=*) werden hier nicht gefunden
 
-if(muniarea.getName().equals("Antonsviertel"))
-	System.out.println("debugging, please");
 		ResultSet selectStreetGeometriesRS = null;
 		java.util.Date local_query_start = new java.util.Date();
 		try {
@@ -244,10 +261,9 @@ if(muniarea.getName().equals("Antonsviertel"))
 // this helps to differentiate identical names, if they are really 
 // more than one in a municipality (for example, in Cologne, Germany)
 				"tags->'postal_code' AS streetpostcode, " +
-				"ST_AsText(way) AS way_astext, way " +
+				"ST_AsText(way) AS way_astext, way, %%tags AS taglist " +
 				"FROM planet_line WHERE " +
 				"(ST_Contains(?::geometry, way) OR ST_Crosses(?::geometry, way)) AND " +
-				//"ST_Relate(?::geometry, way,'1********') AND " +
 				"exist(tags, 'highway') AND " +
 				"exist(tags, 'name') " +
 				"ORDER BY tags->'name';";	// ORDER BY is imported to keep identical highway names near another
@@ -302,9 +318,11 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 					"===  Orig-DB-Straße ===" + selectStreetGeometriesRS.getString("streetname") +
 					"===, normalisiert ===" + actualOSMStreet.getName() + "===");
 
-					//TODO add all Tags from osm ways, not just highway=*
 				List<OSMTag> osmtags = new ArrayList<>();
-				osmtags.add(new OSMTag("highway", osmhighwaytype));
+				String[] taglist = (String[]) selectStreetGeometriesRS.getArray("taglist").getArray();
+				for(int taglistindex = 0; taglistindex < taglist.length; taglistindex += 2) {
+					osmtags.add(new OSMTag(taglist[taglistindex], taglist[taglistindex + 1]));
+				}
 
 				OSMSegment osmway = new OSMSegment(OSMType.way,
 					selectStreetGeometriesRS.getLong("osmid"),
@@ -337,19 +355,13 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	 * @return
 	 */
 	private Map<Street, OSMStreet> getOSMStreetsFromOverpass(MunicipalityArea muniarea) {
-		final Integer MAXOVERPASSTRIES = 3;
-
-		final String OVERPASSURL = "http://overpass-api.de/api/";
-		//String OVERPASSURL = "http://overpass.osm.rambler.ru/cgi/";
-		//String OVERPASSURL = "http://dev.overpass-api.de/api_mmd/";
-
-		Map<Street, OSMStreet> streets = new TreeMap<>();
-
 		URL                url; 
 		URLConnection      urlConn; 
 		BufferedReader     dis;
 
+		final Integer MAXOVERPASSTRIES = 3;
 
+		Map<Street, OSMStreet> streets = new TreeMap<>();
 		
 		IdTracker availableNodes = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
 		IdTracker availableWays = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
@@ -888,6 +900,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			System.out.println("-agsarea xy -- can contain wilcard *, in Germany for example 08% vor all Baden-Wuerttemberg municipalities");
 			System.out.println("-adminhierarchy xy -- admin hierarchy, start at country, separated by comma, like Netherland,Genderland");
 			System.out.println("-jobname jobname -- the named job for an evaluation in citites the jobname for whole municipality is same as municipality name");
+			System.out.println("-useoverpass yes|no -- should be use overpass -> yes with uptodate osm data or a local osm DB in osm2pgsql format -> no (default)");
 			return;
 		}
 
@@ -896,6 +909,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 		String parameter_jobname = "";
 		String parameter_officialkeysid = "";
 		String parameter_adminhierarchy = "";
+		boolean parameterUseOverpass = false;
 		if(args.length >= 1) {
 			int args_ok_count = 0;
 			for(int argsi=0;argsi<args.length;argsi+=2) {
@@ -925,6 +939,12 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 					parameter_jobname = args[argsi+1];
 					args_ok_count += 2;
 				}
+				if(args[argsi].equals("-useoverpass")) {
+					if(args[argsi+1].toLowerCase().indexOf("y") == 0)
+						parameterUseOverpass = true;
+					args_ok_count += 2;
+				}
+				
 			}
 			if(args_ok_count != args.length) {
 				System.out.println("ERROR: not all programm parameters were valid, STOP");
@@ -952,11 +972,13 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			String url_mapnik = configuration.db_osm2pgsql_url;
 			osmdbConn = DriverManager.getConnection(url_mapnik, configuration.db_osm2pgsql_username, configuration.db_osm2pgsql_password);
 
+			MunicipalityJobs.setOverpassForEvaluation(parameterUseOverpass);
+			MunicipalityArea.connectDB(housenumberConn, osmdbConn);
+
+			OSMStreet.connectDB(housenumberConn);
+
 			MunicipalityJobs jobs = new MunicipalityJobs();
 
-			
-			MunicipalityArea.connectDB(housenumberConn, osmdbConn);
-			OSMStreet.connectDB(housenumberConn);
 			int areacount;
 			try {
 				areacount = MunicipalityArea.search(parameter_land, parameter_stadt, parameter_officialkeysid, parameter_jobname, parameter_adminhierarchy);
