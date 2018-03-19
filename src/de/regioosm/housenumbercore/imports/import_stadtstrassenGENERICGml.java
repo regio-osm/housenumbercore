@@ -101,18 +101,6 @@ public class import_stadtstrassenGENERICGml {
 	 */
 	private static Connection conHausnummern = null;
 
-	/**
-	 * signals not set the id of a city.
-	 */
-	private static final long STADTIDUNSET = -1L;
-	/**
-	 * signal not set of the id of a country.
-	 */
-	private static final long LANDIDUNSET = -1L;
-	/**
-	 * minimum number of columns in the input file.
-	 */
-	private static final int FILECOLUMNMINLENGTH = 9; 
 
 	static HashMap<String, Reference> references = new HashMap<String, Reference>();
 	

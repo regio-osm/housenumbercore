@@ -36,7 +36,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,7 +44,7 @@ import java.util.Map;
  *
  */
 public class CsvReader {
-	enum HEADERFIELD {municipality, municipalityid, municipalityref, postcode, 
+	public enum HEADERFIELD {municipality, municipalityid, municipalityref, postcode, 
 		subarea, subareaid, street, streetid, housenumber, housenumberaddition, 
 		housenumberaddition2, note, sourcesrid, lon, lat, ignore};
 
@@ -237,12 +236,14 @@ public class CsvReader {
 				kopfspalten[spaltei].toLowerCase().equals("rw") ||
 				kopfspalten[spaltei].toLowerCase().equals("laengengrad") ||
 				kopfspalten[spaltei].toLowerCase().equals("längengrad") ||
+				kopfspalten[spaltei].toLowerCase().equals("rechtswert") ||
 				kopfspalten[spaltei].toLowerCase().equals("lon_wgs84")) {
 				if(getHeaderfieldColumn(HEADERFIELD.lon) == -1)
 					setHeaderfield(HEADERFIELD.lon, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("lat") ||
 				kopfspalten[spaltei].toLowerCase().equals("hw") ||
 				kopfspalten[spaltei].toLowerCase().equals("breitengrad") ||
+				kopfspalten[spaltei].toLowerCase().equals("hochwert") ||
 				kopfspalten[spaltei].toLowerCase().equals("lat_wgs84")) {
 				if(getHeaderfieldColumn(HEADERFIELD.lat) == -1)
 					setHeaderfield(HEADERFIELD.lat, spaltei);
@@ -310,7 +311,6 @@ public class CsvReader {
 		try {
 			line = this.filereader.readLine();
 			if(line == null) {
-				this.filereader.close();
 				return line;
 			}
 		} catch (IOException e) {
@@ -380,7 +380,6 @@ public class CsvReader {
 		}
 
 
-		boolean useHousenumber = false;
 		String line = "";
 		while ((line = readln()) != null) {
 			address = new ImportAddress();
@@ -444,6 +443,9 @@ public class CsvReader {
 				try {
 					lon = lon.replace(",",".");
 					address.setLon(Double.parseDouble(lon));
+					if(	importlist.getSourceCoordinateSystem().equals("25832") && 
+						(address.getLon() > 32000000))
+						address.setLon(address.getLon() - 32000000.0);
 
 				} catch (NumberFormatException nofloat) {
 					System.out.println("Warning: cannot convert input lon value '" + 
@@ -466,20 +468,20 @@ public class CsvReader {
 
 			if (address.getStreet().equals("") || address.getHousenumber().equals("")) {
 				if (address.getStreet().equals("")) {
-					useHousenumber = false;
 					Importlog("Warning",  "Missing_Street", "no street name in fileline # " + 
 						lineno + ", content ===" + line + "===, will be ignored");
-					useHousenumber = false;
 				}
 				if (address.getHousenumber().equals("")) {
 					Importlog("Warning",  "Missing_Housenumber", "no housenumber in fileline # " + 
 						lineno + ", content ===" + line + "===, will be ignored");
-					useHousenumber = false;
 				}
 			} else {
-				useHousenumber = true;
 				break;
 			}
+		}
+		if(line == null) {
+			this.filereader.close();
+			return null;
 		}
 		return address;
 	}

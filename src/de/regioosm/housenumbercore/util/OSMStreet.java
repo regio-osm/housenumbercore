@@ -171,7 +171,7 @@ public class OSMStreet extends Street implements Comparable {
 
 	public static boolean isValidNamedHighwaytype(String osmhighwaykey, String osmhighwayvalue) {
 		if(validHighwayTypes == null)
-			return false;
+			setDefaultValidHighwayTypes();
 
 		for(int typesindex = 0; typesindex < validHighwayTypes.size(); typesindex++) {
 			OSMTagList actualtaglist = validHighwayTypes.get(typesindex);

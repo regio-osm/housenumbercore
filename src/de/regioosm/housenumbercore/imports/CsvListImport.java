@@ -37,6 +37,7 @@ import de.regioosm.housenumbercore.util.CsvReader;
 import de.regioosm.housenumbercore.util.HousenumberList;
 import de.regioosm.housenumbercore.util.ImportAddress;
 import de.regioosm.housenumbercore.util.Municipality;
+import de.regioosm.housenumbercore.util.CsvReader.HEADERFIELD;
 
 /**
  * Import or update of a housenumber list from a municipality.
@@ -329,7 +330,10 @@ public class CsvListImport {
 				housenumberlist.setFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
 				
-				CsvReader csvreader = new CsvReader(housenumberlist, "UTF-8");	// "ISO-8859-1"
+				CsvReader csvreader = new CsvReader(housenumberlist, "ISO-8859-1");	// "UTF-8"
+csvreader.setHeaderfield(HEADERFIELD.street, 3);
+csvreader.setHeaderfield(HEADERFIELD.housenumber, 4);
+csvreader.setHeaderfield(HEADERFIELD.housenumberaddition, 5);
 				ImportAddress address = null;
 				try {
 					while((address = csvreader.next()) != null) {
