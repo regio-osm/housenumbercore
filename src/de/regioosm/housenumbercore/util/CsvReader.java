@@ -1,4 +1,4 @@
-package de.regioosm.housenumbercore.imports;
+package de.regioosm.housenumbercore.util;
 /*
  * OFFEN 17.06.2014: Koordinaten übernehmen aus Inputfile, 
  * 					z.B. Feiberg: select st_astext(st_transform(st_setsrid(st_point(4594534.685,5644172.396),31468),4326));   //GK4
@@ -36,12 +36,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-
-import de.regioosm.housenumbercore.util.Applicationconfiguration;
-import de.regioosm.housenumbercore.util.HousenumberList;
-import de.regioosm.housenumbercore.util.ImportAddress;
 
 /**
  * Import or update of a housenumber list from a municipality.
@@ -51,11 +47,10 @@ import de.regioosm.housenumbercore.util.ImportAddress;
 public class CsvReader {
 	enum HEADERFIELD {municipality, municipalityid, municipalityref, postcode, 
 		subarea, subareaid, street, streetid, housenumber, housenumberaddition, 
-		housenumberaddition2, note, sourcesrid, lon, lat};
+		housenumberaddition2, note, sourcesrid, lon, lat, ignore};
 
 	private int lineno = 0;
 	private BufferedReader filereader = null;
-	private String filename = "";
 	private String charsetname = null;
 	private String housenumberadditionseparator = "";
 	private String housenumberadditionseparator2 = "-";
@@ -75,10 +70,25 @@ public class CsvReader {
 
 	private Map <String, String> luxembourgLocalityList = new HashMap<> ();
 
-	public CsvReader(HousenumberList importlist, String filename, String charsetname) {
+	/**
+	 * Reader for a file in CSV format.
+	 * Parameter importlist must be filled out with a least importfile name and countrycode
+	 * @param importlist
+	 * @param charsetname	inputfile character set, for example ISO-8859-1 or UTF-8, see https://docs.oracle.com/javase/7/docs/api/java/nio/charset/Charset.html
+	 */
+	public CsvReader(HousenumberList importlist, String charsetname) {
+		if(	(importlist.getImportfile() == null) ||
+			importlist.getImportfile().equals("") ||
+			(importlist.getCountrycode() == null) ||
+			(importlist.getCountrycode().equals(""))) {
+			throw new IllegalArgumentException("At least Importfile and Country Code must be specified in parameter importlist");
+		}
+
 		this.importlist = importlist;
-		this.filename = filename;
 		this.charsetname = charsetname;
+
+		if(importlist.getCountrycode().equals("LU"))
+			initialiseLuxembourg();
 	}
 
 	/**
@@ -89,13 +99,13 @@ public class CsvReader {
 		if((municipality == null) || municipality.equals(""))
 			return -1;
 
-		if(headerfields.get(municipality) != null)
+		if(headerfields.containsKey(municipality))
 			return headerfields.get(municipality);
 
 		return -1;
 	}
 
-	private String getLuxembourgMunicipalityforSubarea(String subareaname) {
+	protected String getLuxembourgMunicipalityforSubarea(String subareaname) {
 		
 		if(luxembourgLocalityList.get(subareaname) != null)
 			return luxembourgLocalityList.get(subareaname);
@@ -103,11 +113,15 @@ public class CsvReader {
 			return "";
 	}
 	
+	public String getFieldSeparator() {
+		return fieldseparator;
+	}
+	
 	private String getFieldContent(String line, HEADERFIELD field) {
 		if((line == null) || line.equals(""))
 			return "";
 
-		String spalten[] = line.split(this.fieldseparator);
+		String spalten[] = line.split(getFieldSeparator());
 
 		if(getHeaderfieldColumn(field) == -1) {
 			return "";
@@ -133,10 +147,11 @@ public class CsvReader {
 	}
 
 	/**
+	 * store information, what field "column" contains
 	 * @param headerfields the headerfields to set
 	 */
 	public void setHeaderfield(HEADERFIELD field, int column) {
-		this.headerfields.put(field,  column);
+		this.headerfields.put(field, column);
 	}
 	
 	private int numberOfOccurences(String text, String search) {
@@ -156,122 +171,133 @@ public class CsvReader {
 	private static ArrayList<String> lowercaselist = new ArrayList<>();
 
 	
-	private Map<HEADERFIELD, Integer> analyseHeaderline(String line) {
-		Map<HEADERFIELD, Integer> header = new HashMap<>();
+	private void analyseHeaderline(String line) {
+
 
 		if((line == null) || line.equals(""))
-			return header;
+			return;
 
 		if(line.indexOf("#") == 0)
 			line = line.substring(1);
 
-		String[] kopfspalten = line.split(this.fieldseparator);
+		String[] kopfspalten = line.split(getFieldSeparator());
 		for (int spaltei = 0; spaltei < kopfspalten.length; spaltei++) {
 			if(	kopfspalten[spaltei].toLowerCase().equals("stadt") || 
 				kopfspalten[spaltei].toLowerCase().equals("addr:city") ||
 				kopfspalten[spaltei].toLowerCase().equals("gemeinde") ||
 				kopfspalten[spaltei].toLowerCase().equals("commune")) {
-				header.put(HEADERFIELD.municipality, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.municipality) == -1)
+					setHeaderfield(HEADERFIELD.municipality, spaltei);
 			} else if(	kopfspalten[spaltei].toLowerCase().equals("stadtid") ||
 				kopfspalten[spaltei].toLowerCase().equals("gemeindeid") ||
 				kopfspalten[spaltei].toLowerCase().equals("gemeinde_id") ||
 				kopfspalten[spaltei].toLowerCase().equals("gemeinde-id")) {
-				header.put(HEADERFIELD.municipalityref, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.municipalityref) == -1)
+					setHeaderfield(HEADERFIELD.municipalityref, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("straße") ||
 				kopfspalten[spaltei].toLowerCase().equals("strasse") ||
 				kopfspalten[spaltei].toLowerCase().equals("rue")) {
-				header.put(HEADERFIELD.street, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.street) == -1)
+					setHeaderfield(HEADERFIELD.street, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("straße-id") ||
 				kopfspalten[spaltei].toLowerCase().equals("straßeid") ||
 				kopfspalten[spaltei].toLowerCase().equals("strasseid") ||
 				kopfspalten[spaltei].toLowerCase().equals("strasse-id") ||
 				kopfspalten[spaltei].toLowerCase().equals("id_caclr_rue")) {
-				header.put(HEADERFIELD.streetid, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.streetid) == -1)
+					setHeaderfield(HEADERFIELD.streetid, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("postcode") ||
 				kopfspalten[spaltei].toLowerCase().equals("plz") ||
 				kopfspalten[spaltei].toLowerCase().equals("postleitzahl") ||
 				kopfspalten[spaltei].toLowerCase().equals("code_postal")) {
-				header.put(HEADERFIELD.postcode, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.postcode) == -1)
+					setHeaderfield(HEADERFIELD.postcode, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("hausnummer") ||
 				kopfspalten[spaltei].toLowerCase().equals("numero")) {
-				header.put(HEADERFIELD.housenumber, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.housenumber) == -1)
+					setHeaderfield(HEADERFIELD.housenumber, spaltei);
 			} else if(	kopfspalten[spaltei].toLowerCase().equals("hausnummerzusatz") ||
 				kopfspalten[spaltei].toLowerCase().equals("hausnummernzusatz")) {
-				header.put(HEADERFIELD.housenumberaddition, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.housenumberaddition) == -1)
+					setHeaderfield(HEADERFIELD.housenumberaddition, spaltei);
 			} else if(	kopfspalten[spaltei].toLowerCase().equals("hausnummerzusatz2") ||	
 				kopfspalten[spaltei].toLowerCase().equals("hausnummernzusatz2")) {
-				header.put(HEADERFIELD.housenumberaddition2, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.housenumberaddition2) == -1)
+					setHeaderfield(HEADERFIELD.housenumberaddition2, spaltei);
 			} else if (	kopfspalten[spaltei].toLowerCase().equals("bemerkung") ||
 				kopfspalten[spaltei].toLowerCase().equals("bemerkungen")) {
-				header.put(HEADERFIELD.note, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.note) == -1)
+					setHeaderfield(HEADERFIELD.note, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("koordindatensystem") ||
 				kopfspalten[spaltei].toLowerCase().equals("epsg") ||
 				kopfspalten[spaltei].toLowerCase().equals("srid")) {
-				header.put(HEADERFIELD.sourcesrid, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.sourcesrid) == -1)
+					setHeaderfield(HEADERFIELD.sourcesrid, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("lon") ||
 				kopfspalten[spaltei].toLowerCase().equals("rw") ||
 				kopfspalten[spaltei].toLowerCase().equals("laengengrad") ||
 				kopfspalten[spaltei].toLowerCase().equals("längengrad") ||
 				kopfspalten[spaltei].toLowerCase().equals("lon_wgs84")) {
-				header.put(HEADERFIELD.lon, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.lon) == -1)
+					setHeaderfield(HEADERFIELD.lon, spaltei);
 			} else if (kopfspalten[spaltei].toLowerCase().equals("lat") ||
 				kopfspalten[spaltei].toLowerCase().equals("hw") ||
 				kopfspalten[spaltei].toLowerCase().equals("breitengrad") ||
 				kopfspalten[spaltei].toLowerCase().equals("lat_wgs84")) {
-				header.put(HEADERFIELD.lat, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.lat) == -1)
+					setHeaderfield(HEADERFIELD.lat, spaltei);
 			} else if(	kopfspalten[spaltei].toLowerCase().equals("sub") ||
 				kopfspalten[spaltei].toLowerCase().equals("subarea") ||
 				kopfspalten[spaltei].toLowerCase().equals("localite")) {
-				header.put(HEADERFIELD.subarea, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.subarea) == -1)
+					setHeaderfield(HEADERFIELD.subarea, spaltei);
 			} else if(	kopfspalten[spaltei].toLowerCase().equals("subid") ||
 				kopfspalten[spaltei].toLowerCase().equals("subarea_id") ||
 				kopfspalten[spaltei].toLowerCase().equals("subarea-id") ||
 				kopfspalten[spaltei].toLowerCase().equals("subareaid")) {
-				header.put(HEADERFIELD.subareaid, spaltei);
+				if(getHeaderfieldColumn(HEADERFIELD.subareaid) == -1)
+					setHeaderfield(HEADERFIELD.subareaid, spaltei);
 			}
 		}
 
 		System.out.print("analysed Header line ...");
-		System.out.print("   municipality: " + header.get(HEADERFIELD.municipality));
-		if(header.get(HEADERFIELD.municipalityid) != null)
-			System.out.print("   municipality ID: " + header.get(HEADERFIELD.municipalityid));
-		System.out.print("   street: " + header.get(HEADERFIELD.street));
-		if(header.get(HEADERFIELD.streetid) != null)
-			System.out.print("   street ID: " + header.get(HEADERFIELD.streetid));
-		System.out.print("   postcode: " + header.get(HEADERFIELD.postcode));
-		System.out.print("   housenumber: " + header.get(HEADERFIELD.housenumber));
-		if(header.get(HEADERFIELD.housenumberaddition) != null)
-			System.out.print("   housenumberaddition: " + header.get(HEADERFIELD.housenumberaddition));
-		if(header.get(HEADERFIELD.housenumberaddition2) != null)
-			System.out.print("   housenumberaddition2: " + header.get(HEADERFIELD.housenumberaddition2));
-		System.out.print("   subarea: " + header.get(HEADERFIELD.subarea));
-		if(header.get(HEADERFIELD.subareaid) != null)
-			System.out.println("   subarea ID: " + header.get(HEADERFIELD.subareaid));
-		if(header.get(HEADERFIELD.lon) != null)
-			System.out.println("   lon: " + header.get(HEADERFIELD.lon));
-		if(header.get(HEADERFIELD.lat) != null)
-			System.out.println("   lat: " + header.get(HEADERFIELD.lat));
-		if(header.get(HEADERFIELD.note) != null)
-			System.out.println("   note: " + header.get(HEADERFIELD.note));
-
-		return header;
+		System.out.print("   municipality: " + getHeaderfieldColumn(HEADERFIELD.municipality));
+		System.out.print("   municipality ID: " + getHeaderfieldColumn(HEADERFIELD.municipalityid));
+		System.out.print("   street: " + getHeaderfieldColumn(HEADERFIELD.street));
+		System.out.print("   street ID: " + getHeaderfieldColumn(HEADERFIELD.streetid));
+		System.out.print("   postcode: " + getHeaderfieldColumn(HEADERFIELD.postcode));
+		System.out.print("   housenumber: " + getHeaderfieldColumn(HEADERFIELD.housenumber));
+		System.out.print("   housenumberaddition: " + getHeaderfieldColumn(HEADERFIELD.housenumberaddition));
+		System.out.print("   housenumberaddition2: " + getHeaderfieldColumn(HEADERFIELD.housenumberaddition2));
+		System.out.print("   subarea: " + getHeaderfieldColumn(HEADERFIELD.subarea));
+		System.out.println("   subarea ID: " + getHeaderfieldColumn(HEADERFIELD.subareaid));
+		System.out.println("   lon: " + getHeaderfieldColumn(HEADERFIELD.lon));
+		System.out.println("   lat: " + getHeaderfieldColumn(HEADERFIELD.lat));
+		System.out.println("   note: " + getHeaderfieldColumn(HEADERFIELD.note));
 	}
 	
 	private boolean open() throws FileNotFoundException {
-		if(this.filename == null)
+		if(this.importlist.getImportfile() == null)
 			return false;
-		File filehandle = new File(this.filename);
+		File filehandle = new File(this.importlist.getImportfile());
 		if(!filehandle.isFile() || !filehandle.canRead())
 			return false;
 		
 		try {
-			this.filereader = new BufferedReader(new InputStreamReader(new FileInputStream(this.filename), Charset.forName(this.charsetname)));
+			this.filereader = new BufferedReader(new InputStreamReader(
+				new FileInputStream(this.importlist.getImportfile()), 
+				Charset.forName(this.charsetname)));
 		} catch (FileNotFoundException e) {
 			throw e;
 		}
 		return true;
 	}
-	
+
+	/**
+	 * read next line of file. In fist line, analyse header
+	 * @return
+	 * @throws Exception
+	 */
 	private String readln() throws Exception {
 		String line = null;
 		
@@ -291,25 +317,25 @@ public class CsvReader {
 			throw e;
 		}
 		lineno++;
-		
+//TODO give use more flexiblity, how many heading lines and if it should be analysed or user defines content itself
 		if(lineno == 1) {
 			int char0 = line.codePointAt(0);
 			int char1 = line.codePointAt(1);
 			if((char0 == 239) && (char1 == 187)) {
 				line = line.substring(3);
 			}
-			if(fieldseparator.equals("")) {
+			if(getFieldSeparator().equals("")) {
 				int hitcount = 0;
 				if (numberOfOccurences(line, "\t") > hitcount) {
-					fieldseparator = "\t";
+					setFieldSeparator("\t");
 					hitcount = numberOfOccurences(line, "\t");
 				}
 				if (numberOfOccurences(line, ";") > hitcount) {
-					fieldseparator = ";";
+					setFieldSeparator(";");
 					hitcount = numberOfOccurences(line, ";");
 				}
 				if (numberOfOccurences(line, ",") > hitcount) {
-					fieldseparator = ",";
+					setFieldSeparator(",");
 					hitcount = numberOfOccurences(line, ",");
 				}
 				if (hitcount == 0) {
@@ -317,7 +343,7 @@ public class CsvReader {
 						"you must set it explicit with setFieldSeparator");
 				}
 			}
-			this.headerfields = analyseHeaderline(line);
+			analyseHeaderline(line);
 				// lets get read another line to get a data line and return this one
 			line = this.filereader.readLine();
 			if(line == null) {
@@ -329,7 +355,7 @@ public class CsvReader {
 	}
 	
 
-	public ImportAddress next() throws Exception {
+	public ImportAddress next() throws Exception  {
 		ImportAddress address = null;
 
 		
@@ -407,7 +433,7 @@ public class CsvReader {
 			String sourcesrid = getFieldContent(line, HEADERFIELD.sourcesrid);
 			if(!sourcesrid.equals("") && !importlist.getSourceCoordinateSystem().equals("")) {
 				if(!sourcesrid.equals(importlist.getSourceCoordinateSystem().equals(""))) {
-					throw new Exception("coordinate system differs in line " + lineno + " '" + sourcesrid + "'" +
+					throw new IllegalArgumentException("coordinate system differs in line " + lineno + " '" + sourcesrid + "'" +
 						" from defined coordinate system '" + importlist.getSourceCoordinateSystem() + "'");
 				}
 			}

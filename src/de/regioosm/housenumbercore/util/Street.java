@@ -64,6 +64,7 @@ public class Street implements Comparable {
 		return hashCode;
 	}
 
+	@Override
     public int compareTo(Object obj) {
 		final int BEFORE = -1;
 		final int EQUAL = 0;
