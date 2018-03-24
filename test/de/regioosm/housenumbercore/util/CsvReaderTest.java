@@ -84,6 +84,8 @@ public class CsvReaderTest {
 		CsvReader csvreader = new CsvReader(importparameter);
 
 		ImportAddress address = null;
+		fail("incomplete");
+/*
 		try {
 			address = csvreader.next();
 			if(address != null) {
@@ -103,6 +105,7 @@ public class CsvReaderTest {
 			e.printStackTrace();
 			fail("exception occured");
 		}
+*/
 	}
 
 	@Test

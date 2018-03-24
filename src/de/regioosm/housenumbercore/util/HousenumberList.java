@@ -67,10 +67,6 @@ public class HousenumberList {
 	 */
 	private boolean housenumberadditionsexactly = false;
 
-	/**
-	 * describe the source of the geocoordinates, like 'Geodatenamt Augsburg';
-	 */
-//	protected String coordinatesSourceText = "";
 
 	private String sourcelistUrl = null;
 	private String sourcelistCopyright = null;
@@ -488,10 +484,6 @@ public class HousenumberList {
 		return this.sourcelistFiledate;
 	}
 	
-/*	public String getSourceGeocoordinateText() {
-		return this.coordinatesSourceText;
-	}
-*/	
 
 	/**
 	 * @return the officialgeocoordinates
@@ -551,10 +543,6 @@ public class HousenumberList {
 		this.subareaActive = subareaActive;
 	}
 
-/*	public void setSourceGeocoordinateText(String sourcetext) {
-		this.coordinatesSourceText = sourcetext;
-	}
-*/
 	public void setSourcelistUrl(String downloadurl) {
 		this.sourcelistUrl = downloadurl;
 	}

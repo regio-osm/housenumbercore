@@ -245,13 +245,6 @@ public class HousenumberListTest {
 			e.printStackTrace();
 		}
 	}
-	
-	@Test
-	public void getSourceGeocoordinateTextTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setSourceGeocoordinateText("Official Sponsor of Olympic Games");
-		assertEquals("Official Sponsor of Olympic Games", hnol.getSourceGeocoordinateText());
-	}
 
 	@Test
 	public void isOfficialgeocoordinatesTest() {
@@ -311,13 +304,6 @@ public class HousenumberListTest {
 		assertTrue(hnol.isSubareaActive());
 		hnol.setSubareaActive(false);
 		assertTrue(!hnol.isSubareaActive());
-	}
-
-	@Test
-	public void setSourceGeocoordinateTextTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setSourceGeocoordinateText("Official Sponsor of Olympic Games");
-		assertEquals("Official Sponsor of Olympic Games", hnol.getSourceGeocoordinateText());
 	}
 
 	@Test

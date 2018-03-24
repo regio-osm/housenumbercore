@@ -11,16 +11,8 @@ import java.nio.charset.Charset;
 	Aufruf: java import_stadtstrassen "Bundesrepublik Deutschland" "Kaufbeuren" "09762" "Stadt-Kaufbeuren-Hausnummern.txt"
 */
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-
-import de.regioosm.housenumbercore.util.Applicationconfiguration;
 
 
 public class CsvImportparameter {
@@ -28,10 +20,6 @@ public class CsvImportparameter {
 		subarea, subareaid, street, streetid, housenumber, housenumberaddition, 
 		housenumberaddition2, note, sourcesrid, lon, lat, ignore};
 
-	/**
-	 * signal not set of the id of a country.
-	 */
-	private static final long COUNTRYIDUNSET = -1L;
 
 	private String countrycode = "";
 	
@@ -40,11 +28,6 @@ public class CsvImportparameter {
 	 */
 	protected String coordinatesSourceSrid = "";
 
-	/**	 use two or more identical housenumbers, if they have different geocoordinates.
-	 * <br>Works only, if official geocoordinates are available
-	 */
-	@Deprecated
-	private boolean latlonforUniqueness = false;
 
 	 /**
 	 * filename of official housenumber list to import
@@ -92,17 +75,8 @@ public class CsvImportparameter {
 		// before the insert of the housenumbers at the streets will be inserted
 	static HashMap<String, Integer> street_idlist = new HashMap<String, Integer>();
 	
-	/**
-	 * DB connection to Hausnummern
-	 */
-	private static Connection housenumberConn = null;
 	
 	
-	/**
-	 * get all configuration items for the application: mostly DB-related and filesystem
-	 */
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
-
 	/**
 	 * @return the countrycode
 	 */
@@ -243,8 +217,5 @@ public class CsvImportparameter {
 		this.housenumberadditionseparator2 = separator2;
 	}
 
-	public static void connectDB(Connection housenumberdbconn) {
-		housenumberConn = housenumberdbconn;
-	}
 	
 }

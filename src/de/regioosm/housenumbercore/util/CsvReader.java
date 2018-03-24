@@ -22,7 +22,6 @@ package de.regioosm.housenumbercore.util;
 		 
 */
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.io.BufferedReader;
@@ -36,7 +35,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
