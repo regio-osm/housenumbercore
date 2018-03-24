@@ -45,7 +45,6 @@ import de.regioosm.housenumbercore.util.CsvImportparameter;
 import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
 import de.regioosm.housenumbercore.util.CsvReader;
 import de.regioosm.housenumbercore.util.HousenumberList;
-import de.regioosm.housenumbercore.util.ImportAddress;
 import de.regioosm.housenumbercore.util.Municipality;
 import de.regioosm.housenumbercore.util.OSMStreet;
 import de.regioosm.housenumbercore.util.Street;
@@ -107,7 +106,7 @@ public class CsvListImport {
 			System.out.println("args[" + lfdnr + "] ===" + args[lfdnr] + "===");
 		}
 
-		String strasseninhaltschreibweise = "";
+
 
 		String fieldSeparator = "\t";
 
@@ -272,7 +271,6 @@ public class CsvListImport {
 			}
 
 
-			CsvImportparameter.connectDB(housenumberConn);
 			CsvImportparameter importparameter = new CsvImportparameter();
 			
 			try {

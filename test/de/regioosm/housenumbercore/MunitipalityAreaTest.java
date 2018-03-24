@@ -13,7 +13,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
-import de.regioosm.housenumbercore.util.Country;
 import de.regioosm.housenumbercore.util.Municipality;
 
 public class MunitipalityAreaTest {
