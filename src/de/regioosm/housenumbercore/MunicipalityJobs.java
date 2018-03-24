@@ -83,6 +83,28 @@ public class MunicipalityJobs {
 	static Applicationconfiguration configuration = new Applicationconfiguration();
 
 	public MunicipalityJobs() {
+		Applicationconfiguration configuration = new Applicationconfiguration();
+
+		try {
+			System.out.println("ok, jetzt Class.forName Aufruf ...");
+			Class.forName("org.postgresql.Driver");
+			System.out.println("ok, nach Class.forName Aufruf!");
+		}
+		catch(ClassNotFoundException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+		try {
+			String url_hausnummern = configuration.db_application_url;
+			housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
+
+			String url_mapnik = configuration.db_osm2pgsql_url;
+			osmdbConn = DriverManager.getConnection(url_mapnik, configuration.db_osm2pgsql_username, configuration.db_osm2pgsql_password);
+		}
+		catch( SQLException e) {
+			e.printStackTrace();
+			return;
+		}
 		
 	}
 
@@ -118,11 +140,11 @@ public class MunicipalityJobs {
 			System.out.println("select statement, to check, if job already exists ===" +
 				selectJobStmt.toString() + "===");
 
-			jobDBId = 0L;
+			this.jobDBId = 0L;
 			ResultSet selectJobRS = selectJobStmt.executeQuery();
 				// if job already exists ..
 			if( selectJobRS.next() ) {
-				jobDBId = selectJobRS.getLong("jobid");
+				this.jobDBId = selectJobRS.getLong("jobid");
 				System.out.println("ok, Job already existing, just update it. Job name is ===" +
 					selectJobRS.getString("jobname"));
 
@@ -136,16 +158,16 @@ public class MunicipalityJobs {
 
 				String deleteJobStreetsSql = "DELETE FROM jobs_strassen where job_id = ?;";
 				PreparedStatement deleteJobStreetsStmt = housenumberConn.prepareStatement(deleteJobStreetsSql);
-				deleteJobStreetsStmt.setLong(1, jobDBId);
+				deleteJobStreetsStmt.setLong(1, this.jobDBId);
 				System.out.println("delete existing job streets ===" + 
 					deleteJobStreetsStmt.toString() + "===");
 				deleteJobStreetsStmt.executeUpdate();
 			} else {
 				String insertJobSql = "INSERT INTO jobs (jobname, land_id, stadt_id, gebiete_id, checkedtime) " +
-					" VALUES (?, ?, ?, ?, now()) returning id;";
+					" VALUES (?, (SELECT id FROM land WHERE countrycode = ?), ?, ?, now()) returning id;";
 				PreparedStatement insertJobStmt = housenumberConn.prepareStatement(insertJobSql);
 				insertJobStmt.setString(1, muniarea.getName());
-				insertJobStmt.setLong(2, muniarea.getCountryDBId());
+				insertJobStmt.setString(2, muniarea.getCountrycode());
 				insertJobStmt.setLong(3, muniarea.getMunicipalityDBId());
 				insertJobStmt.setLong(4, muniarea.getMuniAreaDBId());
 				System.out.println("insert job statement ===" + 
@@ -153,7 +175,7 @@ public class MunicipalityJobs {
 
 				ResultSet insertedJobRS = insertJobStmt.executeQuery();
 				if( insertedJobRS.next() ) {
-					jobDBId = insertedJobRS.getLong("id");
+					this.jobDBId = insertedJobRS.getLong("id");
 					System.out.println(" return id from new job ===" + jobDBId + "===");
 				} else {
 					System.out.println("FEHLER FEHLER: nach Job-insert konnte Job-id nicht geholt werden");

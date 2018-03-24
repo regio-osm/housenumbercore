@@ -80,34 +80,6 @@ public class HousenumberListTest {
 	}
 
 	@Test
-	public void distingishHousenumberByCoordinatesTest() {
-		HousenumberList hnol = new HousenumberList();
-		try {
-				// test standard exception: don't distingish between identical addresses
-			ImportAddress adr1 = new ImportAddress("Teststreet", 123L, "Subarea", 
-				"12345", "98", "", 23.9, 51.1, "4326", "");
-			hnol.addHousenumber(adr1);
-			assertEquals(1, hnol.countHousenumbers());
-
-				// identical address, only coordinates differ
-			ImportAddress adr2 = new ImportAddress("Teststreet", 123L, "Subarea", 
-					"12345", "98", "", 23.777, 51.2222, "4326", "");
-			hnol.addHousenumber(adr2);
-				// count should stay on 1
-			assertEquals(1, hnol.countHousenumbers());
-
-				// now use coordinates to enable doublettes
-			hnol.setDistingishHousenumberByCoordinates(true);
-			hnol.addHousenumber(adr2);
-				// count should stay on 1
-			assertEquals(2, hnol.countHousenumbers());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	@Test
 	public void addHousenumberStringLongStringStringStringStringDoubleDoubleStringStringTest() {
 		HousenumberList hnol = new HousenumberList();
 		try {
@@ -254,14 +226,6 @@ public class HousenumberListTest {
 				// key for both housenumber should be equal
 			assertEquals(hnol.getHousenumberKey(adr1), hnol.getHousenumberKey(adr2));
 			
-				// now use coordinates to enable doublettes
-			hnol.setDistingishHousenumberByCoordinates(true);
-			// key for both housenumber should should not be different
-			assertNotEquals(hnol.getHousenumberKey(adr1), hnol.getHousenumberKey(adr2));
-
-				// back to standard mode (no doublettes)
-			hnol.setDistingishHousenumberByCoordinates(false);
-			
 				// address without coordinates
 			ImportAddress adr3 = new ImportAddress("Main Rd", 123L, "centre", 
 					"12345", "98", "");
@@ -283,65 +247,10 @@ public class HousenumberListTest {
 	}
 	
 	@Test
-	public void getMunicipalityIDListEntryTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> idlist = new HashMap<String,String>();
-		idlist.put("1", "muni1");
-		idlist.put("2", "muni2");
-		idlist.put("47", "muni3");
-		idlist.put("99", "muni4");
-		hnol.setMunicipalityIDList(idlist);
-		assertEquals("muni1", hnol.getMunicipalityIDListEntry("1"));
-		assertEquals("muni2", hnol.getMunicipalityIDListEntry("2"));
-		assertEquals("muni3", hnol.getMunicipalityIDListEntry("47"));
-		assertEquals("muni4", hnol.getMunicipalityIDListEntry("99"));
-	}
-
-	@Test
 	public void getSourceGeocoordinateTextTest() {
 		HousenumberList hnol = new HousenumberList();
 		hnol.setSourceGeocoordinateText("Official Sponsor of Olympic Games");
 		assertEquals("Official Sponsor of Olympic Games", hnol.getSourceGeocoordinateText());
-	}
-
-	@Test
-	public void getSourceCoordinateSystemTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setSourceCoordinateSystem("4326");
-		assertEquals("4326", hnol.getSourceCoordinateSystem());
-	}
-
-	@Test
-	public void getStreetIDListEntryTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> streetlist = new HashMap<String,String>();
-		streetlist.put("1", "A Street");
-		streetlist.put("2", "B Straße");
-		streetlist.put("94", "C Rd");
-		streetlist.put("10101", "D Street");
-		hnol.setStreetIDList(streetlist);
-		assertEquals("A Street", hnol.getStreetIDListEntry("1"));
-		assertEquals("B Straße", hnol.getStreetIDListEntry("2"));
-		assertEquals("C Rd", hnol.getStreetIDListEntry("94"));
-		assertEquals("D Street", hnol.getStreetIDListEntry("10101"));
-	}
-
-	@Test
-	public void getSubareaMunicipalityIDListEntryTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> subarealist = new HashMap<String,String>();
-		subarealist.put("A1", "Sub 1");
-		subarealist.put("B2", "Sub 2");
-		subarealist.put("C222", "Sub 3");
-		subarealist.put("X4711", "Sub 4747");
-		hnol.setSubareaMunicipalityIDList(subarealist);
-		assertEquals("Sub 1", hnol.getSubareaMunicipalityIDListEntry("A1"));
-		assertEquals("Sub 2", hnol.getSubareaMunicipalityIDListEntry("B2"));
-		assertEquals("Sub 3", hnol.getSubareaMunicipalityIDListEntry("C222"));
-		assertEquals("Sub 4747", hnol.getSubareaMunicipalityIDListEntry("X4711"));
 	}
 
 	@Test
@@ -396,45 +305,6 @@ public class HousenumberListTest {
 	}
 
 	@Test
-	public void setMunicipalityIDListTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> idlist = new HashMap<String,String>();
-		idlist.put("1", "muni1");
-		idlist.put("2", "muni2");
-		idlist.put("47", "muni3");
-		idlist.put("99", "muni4");
-		hnol.setMunicipalityIDList(idlist);
-		assertEquals("muni4", hnol.getMunicipalityIDListEntry("99"));
-	}
-
-	@Test
-	public void setStreetIDListTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> streetlist = new HashMap<String,String>();
-		streetlist.put("1", "A Street");
-		streetlist.put("2", "B Straße");
-		streetlist.put("94", "C Rd");
-		streetlist.put("10101", "D Street");
-		hnol.setStreetIDList(streetlist);
-		assertEquals("C Rd", hnol.getStreetIDListEntry("94"));
-	}
-
-	@Test
-	public void setSubareaMunicipalityIDListTest() {
-		HousenumberList hnol = new HousenumberList();
-
-		HashMap<String,String> subarealist = new HashMap<String,String>();
-		subarealist.put("A1", "Sub 1");
-		subarealist.put("B2", "Sub 2");
-		subarealist.put("C222", "Sub 3");
-		subarealist.put("X4711", "Sub 4747");
-		hnol.setSubareaMunicipalityIDList(subarealist);
-		assertEquals("Sub 3", hnol.getSubareaMunicipalityIDListEntry("C222"));
-	}
-
-	@Test
 	public void setSubareaActiveTest() {
 		HousenumberList hnol = new HousenumberList();
 		hnol.setSubareaActive(true);
@@ -444,41 +314,10 @@ public class HousenumberListTest {
 	}
 
 	@Test
-	public void setSourceCoordinateSystemTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setSourceCoordinateSystem("4326");
-		assertEquals("4326", hnol.getSourceCoordinateSystem());
-	}
-
-	@Test
 	public void setSourceGeocoordinateTextTest() {
 		HousenumberList hnol = new HousenumberList();
 		hnol.setSourceGeocoordinateText("Official Sponsor of Olympic Games");
 		assertEquals("Official Sponsor of Olympic Games", hnol.getSourceGeocoordinateText());
-	}
-
-	@Test
-	public void setImportfileTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setImportfile("/a/b/c/d/simpletest.csv");
-		assertEquals("/a/b/c/d/simpletest.csv", hnol.getImportfile());
-
-		hnol.setImportfile("../d/simpletest.csv");
-		assertEquals("../d/simpletest.csv", hnol.getImportfile());
-
-		hnol.setImportfile("..\\d\\simpletest.csv");
-		assertEquals("..\\d\\simpletest.csv", hnol.getImportfile());
-
-		hnol.setImportfile("simpletest.csv");
-		assertEquals("simpletest.csv", hnol.getImportfile());
-	}
-
-	@Test
-	public void setFieldseparatorsTest() {
-		HousenumberList hnol = new HousenumberList();
-		hnol.setFieldseparators("x",  "Y");
-		assertEquals("x", hnol.getFieldseparator());
-		assertEquals("Y", hnol.getFieldseparator2());
 	}
 
 	@Test

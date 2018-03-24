@@ -365,5 +365,29 @@ public class Address {
 	public void addKeyvalue(String key, String value) {
 		this.keyvalues.put(key,value);
 	}
+
+	@Override
+	public String toString() {
+		String output = "";
+
+		output += countrycode + " " + postcode + " " + municipality;
+		if((subArea != null) && !subArea.equals("")) {
+			output += " - " + subArea;
+			if((subareaId != null) && !subareaId.equals(""))
+				output += " (Id: " + subareaId + ")";
+		}
+		if((street != null) && !street.equals(""))
+			output += " " + street + " " + housenumber;
+		else
+			output += " " + place + " " + housenumber;
+		output += " lon= " + lon + " lat=" + lat;
+		if((sourcesrid != null) && !sourcesrid.equals(""))
+			output += " (EPSG: " + sourcesrid + ")";
+		return output;
+
+		// possible further elements to output
+		//coordinatesourcetext
+		//keyvalues
+	}
 }
 

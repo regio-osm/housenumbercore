@@ -8,7 +8,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses({ AddressTest.class, CountryTest.class,
 		HousenumberListTest.class, ImportAddressTest.class,
 		MunicipalityTest.class, OSMSegmentTest.class, OSMStreetTest.class,
-		CsvReaderTest.class})
+		CsvReaderTest.class, CsvImportparameterTest.class})
 public class AllTests {
 
 }

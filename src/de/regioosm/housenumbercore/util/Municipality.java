@@ -337,18 +337,11 @@ public class Municipality implements Comparable<Municipality> {
 		this.countryDBId = countryid;
 	}
 
-	/**
-	 * Do the municipality exists in housenumber DB?
-	 * There must be exactly one hit, only in this case true returns.
-	 * If more than one hit was found, an exception will be thrown
-	 * @return
-	 * @throws Exception 
-	 */
-	public boolean exists() throws Exception {
-		boolean result = false;
+	public Municipality loadFromDB() throws Exception {
+		Municipality result = null;
 		
 		String selectMunicipalitySql = "";
-		selectMunicipalitySql = "SELECT m.id AS muniid " +
+		selectMunicipalitySql = "SELECT m.id AS muniid, officialkeys_id " +
 			"FROM stadt AS m JOIN land AS c ON m.land_id = c.id " +
 			"WHERE c.countrycode like ? " +
 			"AND m.stadt like ? " +
@@ -369,27 +362,47 @@ public class Municipality implements Comparable<Municipality> {
 			int resultcount = 0;
 			while( selectMunicipalityRs.next() ) {
 				resultcount++;
+				result = new Municipality(this.countrycode, this.name, 
+					selectMunicipalityRs.getString("officialkeys_id"));
+				result.setMunicipalityDBId(selectMunicipalityRs.getLong("muniid"));
 			}
 			selectMunicipalityRs.close();
 			selectMunicipalityStmt.close();
 			
 			if(resultcount == 0)
-				return false;
+				return null;
 			else if(resultcount == 1)
-				return true;
+				return result;
 			else
 				throw new IllegalStateException("Municipality instance is not unique");
 		}
 		catch( SQLException e) {
 			e.printStackTrace();
-			return false;
+			return null;
 		}
 	}
 
-	public void store() throws Exception {
+	/**
+	 * Do the municipality exists in housenumber DB?
+	 * There must be exactly one hit, only in this case true returns.
+	 * If more than one hit was found, an exception will be thrown
+	 * @return
+	 * @throws Exception 
+	 */
+	public boolean exists() throws Exception {
+
+		if(loadFromDB() != null)
+			return true;
+		else
+			return false;
+	}
+
+	public Municipality store() throws Exception {
+		Municipality resultmunicipality = null;
 		
-		if(exists())
-			return;
+		resultmunicipality = loadFromDB();
+		if( resultmunicipality != null)
+			return resultmunicipality;
 
 		try {
 			String insertMunicipalitySql = "INSERT INTO stadt (land_id, stadt, "+
@@ -415,12 +428,14 @@ public class Municipality implements Comparable<Municipality> {
 			}
 			insertMunicipalityRs.close();
 			insertMunicipalityStmt.close();
+
+			resultmunicipality = this;
 		}
 		catch( SQLException e) {
 			e.printStackTrace();
 			throw e;
 		}
-		
+		return resultmunicipality;
 	}
 	
 	@Override

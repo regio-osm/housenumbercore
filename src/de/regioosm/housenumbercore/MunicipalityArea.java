@@ -44,6 +44,29 @@ public class MunicipalityArea extends Municipality {
 
 	public MunicipalityArea(Municipality muni) throws Exception {
 		super(muni);
+
+		Applicationconfiguration configuration = new Applicationconfiguration();
+
+		try {
+			System.out.println("ok, jetzt Class.forName Aufruf ...");
+			Class.forName("org.postgresql.Driver");
+			System.out.println("ok, nach Class.forName Aufruf!");
+		}
+		catch(ClassNotFoundException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+		try {
+			String url_hausnummern = configuration.db_application_url;
+			housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
+
+			String url_mapnik = configuration.db_osm2pgsql_url;
+			osmdbConn = DriverManager.getConnection(url_mapnik, configuration.db_osm2pgsql_username, configuration.db_osm2pgsql_password);
+		}
+		catch( SQLException e) {
+			e.printStackTrace();
+			return;
+		}
 	}
 
 	public String getName() {
@@ -223,7 +246,7 @@ public class MunicipalityArea extends Municipality {
 	 * @param storeInDB
 	 * @return
 	 */
-	private boolean generateMunicipalityPolygon(Municipality municipality, int adminLevel, boolean storeInDB) {
+	public boolean generateMunicipalityPolygon(Municipality municipality, int adminLevel, boolean storeInDB) {
 		boolean generatedpolygonstate = false;
 
 		String actual_polygon_part = "";
@@ -234,8 +257,8 @@ public class MunicipalityArea extends Municipality {
 		String osmadminrelationSql = "";
 		osmadminrelationSql = "SELECT osm_id AS id, " +
 			" name, tags->'name:prefix' AS name_prefix, tags->'name:suffix' AS name_suffix, ";
-		if(!municipality.getOfficialRef().equals(""))
-			osmadminrelationSql += "tags->'" + municipality.getOfficialRef() + "' AS gemeindeschluessel, ";
+		if(!municipality.getOfficialKey().equals(""))
+			osmadminrelationSql += "tags->'" + municipality.getOfficialKey() + "' AS gemeindeschluessel, ";
 		else
 			osmadminrelationSql += "null AS gemeindeschluessel, ";
 		osmadminrelationSql += "boundary, tags->'is_in' AS is_in, tags->'is_in:state' AS is_in_state, " +
@@ -278,7 +301,7 @@ public class MunicipalityArea extends Municipality {
 			osmadminrelationSql += " ORDER BY osm_id;";
 	
 			Statement osmadminrelationStmt = osmdbConn.createStatement();
-			System.out.println("Ausgabe osmadminrelationSql ==="+osmadminrelationSql+"===");
+			System.out.println("Ausgabe osmadminrelationSql ===" + osmadminrelationSql + "===");
 			ResultSet osmadminrelationRs = osmadminrelationStmt.executeQuery( osmadminrelationSql );
 			Integer count_relations = 0;
 			Integer count_correct_relations = 0;
@@ -531,9 +554,80 @@ public class MunicipalityArea extends Municipality {
 				generatedpolygonstate = false;
 			} else {
 				this.adminPolygonWKB = complete_polygon;
+//TODO store main area polygon in subarea-table and set a flag to identify its main state
 				this.adminPolygonOsmIdlist = complete_polygon_idlist;
 				this.adminPolygonOsmId = polygon_id;
 				generatedpolygonstate = true;
+				if(storeInDB) {
+					String selectSubareaSql = "SELECT id, name FROM gebiete WHERE"
+						+ " name = ? AND stadt_id = ? AND admin_level = ?;";
+					PreparedStatement selectSubareaStmt = housenumberConn.prepareStatement(selectSubareaSql);
+					int stmtindex = 1;
+					selectSubareaStmt.setString(stmtindex++, municipality.getName());
+					selectSubareaStmt.setLong(stmtindex++, municipality.getMunicipalityDBId());
+					selectSubareaStmt.setInt(stmtindex++, municipality_adminlevel);
+					System.out.println("query to get subarea ===" + selectSubareaStmt.toString() + "===");
+		
+					ResultSet selectSuburbRs = selectSubareaStmt.executeQuery();
+					if( selectSuburbRs.next() ) {
+						this.muniareaDBId = selectSuburbRs.getLong("id");
+						this.name = selectSuburbRs.getString("name");
+						System.out.println("ok, main area already found in DB, Name ===" + 
+							selectSuburbRs.getString("name") + "===, will be updated");
+		
+						String updateSuburbSql = "UPDATE gebiete SET " +
+								"osm_id = ?, polygon = ?::geometry, sub_id = ?, checkedtime = now() " +
+								"WHERE id = ?;";
+						PreparedStatement updateSuburbStmt = housenumberConn.prepareStatement(updateSuburbSql);
+						stmtindex = 1;
+						updateSuburbStmt.setLong(stmtindex++, this.adminPolygonOsmId);
+						updateSuburbStmt.setString(stmtindex++, this.adminPolygonWKB);
+						updateSuburbStmt.setString(stmtindex++, "-1");
+						updateSuburbStmt.setLong(stmtindex++, this.muniareaDBId);
+		
+						System.out.println("update suburb DB statement ===" + updateSuburbStmt.toString() + "===");
+						try {
+							updateSuburbStmt.executeUpdate();
+							System.out.println("Info: successfully updated area in database");
+						}
+						catch( SQLException errorupdate) {
+							System.out.println("Error occured during try of update gebiete record with stadt.id ===" +
+								municipality.getMunicipalityDBId());
+							errorupdate.printStackTrace();
+						}
+					} else {
+						try {
+							String insertSuburbSql = "INSERT INTO gebiete ";
+							insertSuburbSql += "(name, land_id, stadt_id, admin_level, " +
+								"sub_id, osm_id, checkedtime, polygon) VALUES ";
+							insertSuburbSql += " (?, (SELECT id FROM land WHERE countrycode = ?), " +
+								"?, ?, ?, ?,  now(), ?::geometry) returning id;";
+							PreparedStatement insertSuburbStmt = housenumberConn.prepareStatement(insertSuburbSql);
+							stmtindex = 1;
+							insertSuburbStmt.setString(stmtindex++, municipality.getName());
+							insertSuburbStmt.setString(stmtindex++, municipality.getCountrycode());
+							insertSuburbStmt.setLong(stmtindex++, municipality.getMunicipalityDBId());
+							insertSuburbStmt.setInt(stmtindex++, municipality_adminlevel);
+							insertSuburbStmt.setString(stmtindex++, "-1");
+							insertSuburbStmt.setLong(stmtindex++, this.adminPolygonOsmId);
+							insertSuburbStmt.setString(stmtindex++, this.adminPolygonWKB);
+
+							ResultSet insertSuburbRS = insertSuburbStmt.executeQuery();
+							if( insertSuburbRS.next() ) {
+								this.muniareaDBId = insertSuburbRS.getLong("id");
+								this.name = municipality.getName();
+								System.out.println(" return id from new job ===" + muniareaDBId + "===");
+							} else {
+								System.out.println("FEHLER FEHLER: nach Area-insert konnte Area-id nicht geholt werden");
+							}
+						}
+						catch( SQLException errorinsert) {
+							System.out.println("Error occured during try of insert gebiete record with stadt.id ===" +
+								municipality.getMunicipalityDBId());
+							errorinsert.printStackTrace();
+						}
+					}
+				}
 			}
 		}
 		catch (SQLException sqle) {
@@ -774,7 +868,7 @@ public class MunicipalityArea extends Municipality {
 	
 				
 				
-				String selectSubareaSql = "SELECT id FROM gebiete WHERE"
+				String selectSubareaSql = "SELECT id, name FROM gebiete WHERE"
 					+ " name = ? AND stadt_id = ? AND admin_level = ?;";
 				PreparedStatement selectSubareaStmt = housenumberConn.prepareStatement(selectSubareaSql);
 				stmtindex = 1;
@@ -791,15 +885,13 @@ public class MunicipalityArea extends Municipality {
 	
 					String updateSuburbSql = "UPDATE gebiete SET " +
 							"osm_id = ?, polygon = ?::geometry, sub_id = ?, checkedtime = now() " +
-							"WHERE name = ? AND stadt_id = ? AND admin_level = ?;";
+							"WHERE id = ?;";
 					PreparedStatement updateSuburbStmt = housenumberConn.prepareStatement(updateSuburbSql);
 					stmtindex = 1;
 					updateSuburbStmt.setLong(stmtindex++, subadminrelationRs.getLong("id"));
 					updateSuburbStmt.setString(stmtindex++, subpolygonString);
 					updateSuburbStmt.setString(stmtindex++, sub_id);
-					updateSuburbStmt.setString(stmtindex++, subadminrelationRs.getString("name"));
-					updateSuburbStmt.setLong(stmtindex++, municipality.getMunicipalityDBId());
-					updateSuburbStmt.setInt(stmtindex++, subadminrelationRs.getInt("admin_level"));
+					updateSuburbStmt.setLong(stmtindex++, selectSuburbRs.getLong("id"));
 	
 					System.out.println("update suburb DB statement ===" + updateSuburbStmt.toString() + "===");
 					try {
@@ -817,7 +909,7 @@ public class MunicipalityArea extends Municipality {
 						insertSuburbSql += "(name, land_id, stadt_id, admin_level, " +
 							"sub_id, osm_id, checkedtime, polygon) VALUES ";
 						insertSuburbSql += " (?, (SELECT id FROM land WHERE countrycode = ?), " +
-							"?, ?, ?, ?,  now(), ?::geometry);";
+							"?, ?, ?, ?,  now(), ?::geometry) returning id;";
 						PreparedStatement insertSuburbStmt = housenumberConn.prepareStatement(insertSuburbSql);
 						stmtindex = 1;
 						insertSuburbStmt.setString(stmtindex++, subadminrelationRs.getString("name"));
@@ -827,9 +919,13 @@ public class MunicipalityArea extends Municipality {
 						insertSuburbStmt.setString(stmtindex++, sub_id);
 						insertSuburbStmt.setLong(stmtindex++, subadminrelationRs.getLong("id"));
 						insertSuburbStmt.setString(stmtindex++, subpolygonString);
-	
-						System.out.println("Gebiet-Insertbefehl ==="+insertSuburbSql+"===");
-						insertSuburbStmt.executeUpdate();
+
+						ResultSet insertSuburbRS = insertSuburbStmt.executeQuery();
+						if( insertSuburbRS.next() ) {
+							System.out.println(" return id from new job ===" + muniareaDBId + "===");
+						} else {
+							System.out.println("FEHLER FEHLER: nach Area-insert konnte Area-id nicht geholt werden");
+						}
 					}
 					catch( SQLException errorinsert) {
 						System.out.println("Error occured during try of insert gebiete record with stadt.id ===" +
@@ -950,7 +1046,7 @@ public class MunicipalityArea extends Municipality {
 			Municipality municipality = null;
 				// loop over all found municipalities
 			while( (municipality = Municipality.next()) != null ) {
-				MunicipalityArea newarea;
+				MunicipalityArea newarea = null;
 				try {
 					newarea = new MunicipalityArea(municipality);
 					System.out.println("Processing municipality " + municipality.toString() + "===");

@@ -96,4 +96,18 @@ public class ImportAddress extends Address {
 	public void setCoordinatesSourceText(String coordinatesourcetext) {
 		this.coordinatesourcetext = coordinatesourcetext;
 	}
+	
+	@Override
+	public String toString() {
+		String output = super.toString();
+		
+		if ((municipalityRef != null) && !municipalityRef.equals(""))
+			output += " muni-ref: " + municipalityRef;
+		if ((note != null) && !note.equals(""))
+			output += " Note: " + note;
+		if (streetDBId != 0L)
+			output += " Street DB-Id: " + streetDBId;
+		
+		return output;
+	}
 }

@@ -25,19 +25,31 @@ package de.regioosm.housenumbercore.imports;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 
+import de.regioosm.housenumbercore.MunicipalityArea;
+import de.regioosm.housenumbercore.MunicipalityJobs;
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 import de.regioosm.housenumbercore.util.Country;
+import de.regioosm.housenumbercore.util.CsvImportparameter;
+import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
 import de.regioosm.housenumbercore.util.CsvReader;
 import de.regioosm.housenumbercore.util.HousenumberList;
 import de.regioosm.housenumbercore.util.ImportAddress;
 import de.regioosm.housenumbercore.util.Municipality;
-import de.regioosm.housenumbercore.util.CsvReader.HEADERFIELD;
+import de.regioosm.housenumbercore.util.OSMStreet;
+import de.regioosm.housenumbercore.util.Street;
+
 
 /**
  * Import or update of a housenumber list from a municipality.
@@ -63,12 +75,13 @@ public class CsvListImport {
 	 */
 	public static void main(final String[] args) {
 
+		DateFormat dateformatUS = new SimpleDateFormat("yyyy-MM-dd");
+
 		if ((args.length >= 1) && (args[0].equals("-h"))) {
 			System.out.println("-land 'Bundesrepublik Deutschland' wenn fehlend");
 			System.out.println("-stadt Stadtname");
 			System.out.println("-ags 8stelligeramtlicherGemeindeschlüssel z.B. 09761000");
 			System.out.println("-koordsystem srid z.B. 31468 für GK4");
-			System.out.println("-koordquelle z.B. 'Stadt xy'");
 			System.out.println("-datei importdateiname");
 			System.out.println("-municipalityidfile filename with municipalty-id => municipality name, if in main -datei file is only municipality-id, not the municipality name itself: Column 1 has fix id, Column 2 has fix municipality name, file is UTF-8, text-format and tab-separated");
 			System.out.println("-submunicipalityidfile filename with SUBmunicipalty-id => SUBmunicipality name, if in main -datei file is only submunicipality-id, not the submunicipality name itself: Column 1 has fix municipality id, Column 2 has fix submunicipality id and Column 3 has fix submunicipality name. File is UTF-8, text-format and tab-separated");
@@ -76,7 +89,13 @@ public class CsvListImport {
 			System.out.println("-hausnummeradditionseparator zeichen");
 			System.out.println("-hausnummeradditionseparator2 zeichen");
 			System.out.println("-feldseparator zeichen");
-			System.out.print("-subgebieteaktiv ja|nein (default nein)");
+			System.out.println("-subgebieteaktiv ja|nein (default nein)");
+			System.out.println("-listurl  download hyperlink to housennumberlist");
+			System.out.println("-copyright copyright Text for housenumberlist");
+			System.out.println("-useage useage Text for the list");
+			System.out.println("-listcontenttimestamp Content Timestamp in date format YYYY-MM-DD");
+			System.out.println("-listfiletimestamp File Timestamp in date format YYYY-MM-DD");
+			System.out.println("-CoordinatesOSMImportable are Coordinates in import file free importable in OSM (license compatible)");
 			System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
 			System.out.println("");
 			System.out.println("Importfile must have commentline in line 1, starting with #");
@@ -96,7 +115,6 @@ public class CsvListImport {
 		String parameterStadt = "";
 		String parameterAgs = "";
 		String parameterQuellSrid = "";
-		String parameterQuellText = "";
 		String parameterImportdateiname = "";
 		String parameterMunicipalityIdListfilename = "";
 		String parameterSubMunicipalityIdListfilename = "";
@@ -104,6 +122,13 @@ public class CsvListImport {
 		boolean parameterSubareaActive = false;
 		String parameterHousenumberadditionseparator = "";
 		String parameterHousenumberadditionseparator2 = "-";
+		String parameterSourcelistUrl = "";
+		String parameterSourcelistCopyright = "";
+		String parameterSourcelistUseage = "";
+		Date parameterSourcelistContentdate = null;
+		Date parameterSourcelistFiledate = null;
+		boolean parameterOfficialgeocoordinates = false;
+
 
 		HashMap<String,String> municipalityIdList = new HashMap<String,String>();
 		HashMap<String,String> submunicipalityIdList = new HashMap<String,String>();
@@ -132,10 +157,6 @@ public class CsvListImport {
 				}
 				if (args[argsi].equals("-koordsystem")) {
 					parameterQuellSrid = args[argsi + 1];
-					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-koordquelle")) {
-					parameterQuellText = args[argsi + 1];
 					argsOkCount += 2;
 				}
 				if (args[argsi].equals("-datei")) {
@@ -176,6 +197,46 @@ public class CsvListImport {
 					System.out.println("Info: explizit Feldseparator aktiviert ===" + fieldSeparator + "===");
 					argsOkCount += 2;
 				}				
+				if (args[argsi].equals("-listurl")) {
+					parameterSourcelistUrl = args[argsi + 1];
+					argsOkCount += 2;
+				}
+				if (args[argsi].equals("-copyright")) {
+					parameterSourcelistCopyright = args[argsi + 1];
+					argsOkCount += 2;
+				}
+				if (args[argsi].equals("-useage")) {
+					parameterSourcelistUseage = args[argsi + 1];
+					argsOkCount += 2;
+				}
+				if (args[argsi].equals("-listcontenttimestamp")) {
+					try {
+						parameterSourcelistContentdate = dateformatUS.parse(args[argsi + 1]);
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					argsOkCount += 2;
+				}
+				if (args[argsi].equals("-listfiletimestamp")) {
+					try {
+						parameterSourcelistFiledate = dateformatUS.parse(args[argsi + 1]);
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					argsOkCount += 2;
+				}
+				if (args[argsi].equals("-CoordinatesOSMImportable")) {
+					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
+					if (yesno.equals("y") || yesno.equals("j")) {
+						parameterOfficialgeocoordinates = true;
+					} else {
+						parameterOfficialgeocoordinates = false;
+					}
+					argsOkCount += 2;
+				}
+
 			}
 			if (argsOkCount != args.length) {
 				System.out.println("ERROR: not all programm parameters were valid, STOP");
@@ -210,39 +271,9 @@ public class CsvListImport {
 				e2.printStackTrace();
 			}
 
-			Municipality municipality = null;
-			Municipality.connectDB(housenumberConn);
 
-			int numbermunicipalities;
-			try {
-				numbermunicipalities = Municipality.search(parameterLand, parameterStadt, parameterAgs, "");
-			} catch (Exception e1) {
-				System.out.println("Error ocurred, when tried to get the municipality");
-				System.out.println("Error details: " + e1.toString());
-				return;
-			}
-			if(numbermunicipalities == 0) {
-				try {
-					municipality = new Municipality(parameterLand, parameterStadt, parameterAgs);
-					municipality.store();
-				} catch (Exception e) {
-					System.out.println("Error ocurred, when tried to create municipality in database.");
-					System.out.println("Error details: " + e.toString());
-					return;
-				}
-			} else if(numbermunicipalities > 1) {
-				while((municipality = Municipality.next()) != null) {
-					System.out.println("Hit " + municipality.toString());
-				}
-				return;
-			}
-
-			municipality = Municipality.next();
-			System.out.println("municipality already exists, therefor import of liste can be done");
-			System.out.println("here is the found municipality with its properties: " + municipality.toString());
-
-			HousenumberList housenumberlist = new HousenumberList();
-			HousenumberList.connectDB(housenumberConn);
+			CsvImportparameter.connectDB(housenumberConn);
+			CsvImportparameter importparameter = new CsvImportparameter();
 			
 			try {
 					// if importfile has no direct information about municipality name, 
@@ -267,7 +298,7 @@ public class CsvListImport {
 						}
 					}
 					municipalityIdlistfilereader.close();
-					housenumberlist.setMunicipalityIDList(municipalityIdList);
+					importparameter.setMunicipalityIDList(municipalityIdList);
 				}
 
 					// if importfile has no direct information about municipality subarea name, 
@@ -294,7 +325,7 @@ public class CsvListImport {
 						}
 					}
 					submunicipalityIdlistfilereader.close();
-					housenumberlist.setSubareaMunicipalityIDList(submunicipalityIdList);
+					importparameter.setSubareaMunicipalityIDList(submunicipalityIdList);
 				}
 
 					// if importfile has no direct information about street name, 
@@ -319,31 +350,103 @@ public class CsvListImport {
 						}
 					}
 					streetidlistfilereader.close();
-					housenumberlist.setStreetIDList(streetIdList);
+					importparameter.setStreetIDList(streetIdList);
 				}
 
-				housenumberlist.setMunicipality(municipality);
-				housenumberlist.setSubareaActive(parameterSubareaActive);
-				housenumberlist.setSourceCoordinateSystem(parameterQuellSrid);
-				housenumberlist.setSourceGeocoordinateText(parameterQuellText);
-				housenumberlist.setImportfile(parameterImportdateiname);
-				housenumberlist.setFieldseparators(parameterHousenumberadditionseparator,
-					parameterHousenumberadditionseparator2);
-				
-				CsvReader csvreader = new CsvReader(housenumberlist, "ISO-8859-1");	// "UTF-8"
-csvreader.setHeaderfield(HEADERFIELD.street, 3);
-csvreader.setHeaderfield(HEADERFIELD.housenumber, 4);
-csvreader.setHeaderfield(HEADERFIELD.housenumberaddition, 5);
-				ImportAddress address = null;
+				Municipality.connectDB(housenumberConn);
+
 				try {
-					while((address = csvreader.next()) != null) {
-						housenumberlist.addHousenumber(address);
-					}
+					importparameter.setCountrycode(Country.getCountryShortname(parameterLand));
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				housenumberlist.storeToDB();
+				importparameter.setSubareaActive(parameterSubareaActive);
+				importparameter.setSourceCoordinateSystem(parameterQuellSrid);
+				importparameter.setImportfile(parameterImportdateiname, Charset.forName("UTF-8"));		 //"ISO-8859-1"  "UTF-8"
+				importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
+					parameterHousenumberadditionseparator2);
+				importparameter.setHeaderfield(HEADERFIELD.municipalityref, 3);
+				importparameter.setHeaderfield(HEADERFIELD.municipality, 4);
+				importparameter.setHeaderfield(HEADERFIELD.street, 5);
+				importparameter.setHeaderfield(HEADERFIELD.housenumber, 6);
+				importparameter.setHeaderfield(HEADERFIELD.postcode, 7);
+				importparameter.setHeaderfield(HEADERFIELD.lon, 10);
+				importparameter.setHeaderfield(HEADERFIELD.lat, 11);
+				
+				CsvReader csvreader = new CsvReader(importparameter);
+				Map<Municipality, HousenumberList> housenumberlists = csvreader.execute();
+				for (Map.Entry<Municipality, HousenumberList> listentry : housenumberlists.entrySet()) {
+					Municipality municipality = listentry.getKey();
+					HousenumberList housenumberlist = listentry.getValue();
+
+					housenumberlist.setSourcelistUrl(parameterSourcelistUrl);
+					housenumberlist.setSourcelistCopyright(parameterSourcelistCopyright);
+					housenumberlist.setSourcelistUseage(parameterSourcelistUseage);
+					housenumberlist.setContentDate(parameterSourcelistContentdate);
+					housenumberlist.setFileDate(parameterSourcelistFiledate);
+					housenumberlist.setOfficialgeocoordinates(parameterOfficialgeocoordinates);
+
+					int numbermunicipalities = 0;
+					try {
+						numbermunicipalities = Municipality.search(municipality.getCountrycode(), 
+							municipality.getName(), municipality.getOfficialRef(), "");
+					} catch (Exception e1) {
+						System.out.println("Error ocurred, when tried to get the municipality");
+						System.out.println("Error details: " + e1.toString());
+						return;
+					}
+					if(numbermunicipalities <= 1) {
+						if(numbermunicipalities == 0) {
+							try {
+								municipality = municipality.store();
+							} catch (Exception e) {
+								System.out.println("Error ocurred, when tried to create municipality in database.");
+								System.out.println("Error details: " + e.toString());
+								return;
+							}
+						} else  {
+							municipality = Municipality.next();
+							System.out.println("municipality already exists, therefor import of liste can be done");
+							System.out.println("here is the found municipality with its properties: " + municipality.toString());
+						}
+						if(municipality.getName().equals("Muhen"))
+							System.out.println("Muhe, sollte mehr als 716 Datensätze haben: " + housenumberlist.countHousenumbers());
+						housenumberlist.storeToDB();
+					} else {
+						while((municipality = Municipality.next()) != null) {
+							System.out.println("Hit " + municipality.toString());
+						}
+continue;
+					}
+
+					MunicipalityArea newarea = null;
+					MunicipalityJobs jobs = new MunicipalityJobs();
+					try {
+						newarea = new MunicipalityArea(municipality);
+						System.out.println("Processing municipality " + municipality.toString() + "===");
+						if(newarea.generateMunicipalityPolygon(municipality, 0, true)) {
+							if(newarea.generateSuburbPolygons(municipality, true)) {
+								while( newarea != null ) {
+									System.out.println("Processing newarea: " + newarea.toString() + "===");
+									jobs.generateJob(newarea);
+									Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
+									jobs.storeStreets(newarea, osmstreets);
+									newarea = MunicipalityArea.next();
+								}   // loop over all found municipality areas
+							} else {
+								//TODO display error, generating suburb polygons for municipality
+							}
+						} else {
+							//TODO display error, generating Admin polygon for municipality
+							continue;
+						}
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				}
 
 		    } catch (FileNotFoundException e) {
 		      e.printStackTrace();

@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,11 +34,11 @@ public class HousenumberList {
 	private static final long COUNTRYIDUNSET = -1L;
 
 
+	private String countrycode = "";
+	private String hierarchy = "";
 	/**
 	 * DB-internal Id of the actual country, the housenumber list belongs to
 	 */
-	private String countrycode = "";
-	private String hierarchy = "";
 	private long countryDBId = COUNTRYIDUNSET;	// should be deleted completely
 	
 	private String municipality = "";
@@ -59,8 +60,6 @@ public class HousenumberList {
 	 * If not official useable in osm, but geocoordinates are available, they will be stored and used for quality assurance, but not for osm import
 	 */
 	private boolean officialgeocoordinates = false;
-	private String housenumberadditionseparator = "";
-	private String housenumberadditionseparator2 = "-";
 	/**
 	 * defines, if housenumber additions must be exactly identical between officlal list and osm.
 	 * set true for exactly writing of housenumber addition 'A' and 'a' are different.
@@ -69,37 +68,16 @@ public class HousenumberList {
 	private boolean housenumberadditionsexactly = false;
 
 	/**
-	 * SRID Id of coordinates System
-	 */
-	protected String coordinatesSourceSrid = "";
-	/**
 	 * describe the source of the geocoordinates, like 'Geodatenamt Augsburg';
 	 */
-	protected String coordinatesSourceText = "";
+//	protected String coordinatesSourceText = "";
 
-	/**	 use two or more identical housenumbers, if they have different geocoordinates.
-	 * <br>Works only, if official geocoordinates are available
-	 */
-	private boolean latlonforUniqueness = false;
-
-	 /**
-	 * filename of official housenumber list to import
-	 */
-	private String filename = "";
-	/**
-	 * List of municipality ids, when import file contains only references to municipalities
-	 * 
-	 */
-	private Map<String, String> municipalityIDList = new HashMap<>();
-	/**
-	 * List of subarea municipality ids, when import file contains only references to subareas
-	 */
-	private Map<String, String> subareaMunicipalityIDList = new HashMap<>();
-	/**
-	 * List of street ids, when import file contains only references to streets, not the names
-	 */
-	private Map<String, String> streetIDList = new HashMap<>();
-
+	private String sourcelistUrl = null;
+	private String sourcelistCopyright = null;
+	private String sourcelistUseage = null;
+	private Date sourcelistContentdate = null;
+	private Date sourcelistFiledate = null;
+	
 	/**
 	 * internal Structure to hold all housenumber-Objects;
 	 */
@@ -119,7 +97,14 @@ public class HousenumberList {
 	 */
 	private static Connection housenumberConn = null;
 
+	public HousenumberList() {
+		
+	}
 
+	public HousenumberList(Municipality municipality) {
+		this.setMunicipality(municipality);
+	}
+	
 	public String getHousenumberKey(String street, String subarea, String postcode, 
 		String housenumber) {
 
@@ -134,12 +119,14 @@ public class HousenumberList {
 		String housenumber, Double lon, Double lat) {
 
 		String key = getHousenumberKey(street, subarea, postcode, housenumber);
-
-		if(	isDistingishHousenumberByCoordinates() &&
+//TODO before 2018-03, it was possible to import an identical address more than one time in DB, if it comes with two different geolocations
+// in importfile. But it can't be distingished later in DB against OSM corresponding address, so this is not longer supported
+/*		if(	ImportAddress.isDistingishHousenumberByCoordinates() &&
 			(lon != ImportAddress.lonUnset) &&
 			(lat != ImportAddress.latUnset)) {
 			key += String.valueOf(lon) + String.valueOf(lat);
 		}
+*/
 		return key;
 	}
 
@@ -147,38 +134,48 @@ public class HousenumberList {
 		return getHousenumberKey(address.getStreet(), address.getSubArea(), address.getPostcode(),
 			address.getHousenumber(), address.getLon(), address.getLat());
 	}
+
+	/** 
+	 * is the address already in housenumberlist
+	 * @param address
+	 * @return
+	 */
+	public boolean contains(ImportAddress address) {
+		String key = getHousenumberKey(address.getStreet(), address.getSubArea(), address.getPostcode(),
+			address.getHousenumber(), address.getLon(), address.getLat());
+		if(housenumbers == null)
+			return false;
 		
+		return housenumbers.containsKey(key);
+	}
+
+	public boolean addHousenumber(ImportAddress address) {
+
+		String key = getHousenumberKey(address);
+		if(!contains(address)) {
+			housenumbers.put(key, address);
+			return true;
+		} else {
+			System.out.println("address already defined as ===" + 
+				housenumbers.get(key).toString() + "===,   new " + 
+				address.toString() +" -- key was ===" + key + "===");
+			return false;
+		}
+	}
+
 	public boolean addHousenumber(String streetName, long streetid, String subid, 
 			String postcode, String housenumber,
 			String bemerkung, double longitude, double latitude, String sourcesrid, String sourcetext) {
-		boolean value_added = false;
-		String key = getHousenumberKey(streetName, subid, postcode, housenumber, longitude, latitude);
-		ImportAddress.connectDB(housenumberConn);
-		ImportAddress street = null;
-		if((housenumbers != null) && (housenumbers.get(key) != null))
-			street = housenumbers.get(key);;
-		if (street == null) {
-			try {
-				street = new ImportAddress(streetName, streetid, subid, postcode, housenumber, bemerkung, longitude, latitude, sourcesrid, sourcetext);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			housenumbers.put(key, street);
-			value_added = true;
-		} else {
-			System.out.println("address already defined as ===" + street.toString() + "===,   new " + streetName + " " 
-				+ subid + " " + postcode + " " + housenumber + " " + bemerkung + " "
-				+ longitude + " " + latitude + " -- key was ===" + key + "===");
-			value_added = false;
-		}
-		return value_added;
-	}
 
-	public boolean addHousenumber(ImportAddress a) {
-		return this.addHousenumber(a.getStreet(), a.getStreetDBId(), a.getSubArea(), 
-			a.getPostcode(), a.getHousenumber(), a.getNote(), a.getLon(), a.getLat(),
-			this.coordinatesSourceSrid, this.coordinatesSourceText);
+		ImportAddress.connectDB(housenumberConn);
+		ImportAddress address = null;
+		try {
+			address = new ImportAddress(streetName, streetid, subid, postcode, housenumber, bemerkung, longitude, latitude, sourcesrid, sourcetext);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return this.addHousenumber(address);
 	}
 
 	
@@ -223,12 +220,21 @@ public class HousenumberList {
 			System.out.println("Select-Anfrage ===" + selectMunicipalityStmt.toString() + "=== ...");
 
 //TODO add info, if postcode is available
-			String insertMunicipalitySql = "INSERT INTO stadt (land_id, stadt,"
-				+ " officialkeys_id, osm_hierarchy,"
-				+ "subareasidentifyable, housenumberaddition_exactly, officialgeocoordinates)"
-				+ "  VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;";
+			String insertMunicipalitySql = "INSERT INTO stadt (land_id, stadt, " +
+				"officialkeys_id, osm_hierarchy, " +
+				"subareasidentifyable, housenumberaddition_exactly, officialgeocoordinates, " +
+				"sourcelist_url, sourcelist_copyrighttext, sourcelist_useagetext, " +
+				"sourcelist_contentdate, sourcelist_filedate) " +
+				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id;";
 			PreparedStatement insertMunicipalityStmt = housenumberConn.prepareStatement(insertMunicipalitySql);
 
+			String updateMunicipalitySql = "UPDATE stadt SET " +
+				"sourcelist_url = ?, sourcelist_copyrighttext = ?, sourcelist_useagetext = ?, " +
+				"officialgeocoordinates = ?, " +
+				"sourcelist_contentdate = ?, sourcelist_filedate = ? " +
+				"WHERE id = ?;";
+			PreparedStatement updateMunicipalityStmt = housenumberConn.prepareStatement(updateMunicipalitySql);
+			
 			String insertHousenumberWithGeometrySql = "INSERT into stadt_hausnummern(land_id, stadt_id, strasse_id,"
 				+ " postcode, hausnummer, hausnummer_sortierbar, sub_id, hausnummer_bemerkung,"
 				+ " point, pointsource)"
@@ -264,6 +270,19 @@ public class HousenumberList {
 				setMunicipalityDBId(selectMunicipalityRs.getLong("muniid"));
 				countryDBId = selectMunicipalityRs.getLong("countryid");
 				municipalityAlreadyExists = true;
+
+				stmtindex = 1;
+
+//if((getMunicipalityRef() != null) && !getMunicipalityRef().equals(""))
+				updateMunicipalityStmt.setString(stmtindex++, getSourcelistUrl());
+				updateMunicipalityStmt.setString(stmtindex++, getsourcelistCopyright());
+				updateMunicipalityStmt.setString(stmtindex++, getsourcelistUseage());
+				updateMunicipalityStmt.setString(stmtindex++, isOfficialgeocoordinates() ? "y" : "n");
+				updateMunicipalityStmt.setDate(stmtindex++, new java.sql.Date(getContentDate().getTime()));
+				updateMunicipalityStmt.setDate(stmtindex++, new java.sql.Date(getFileDate().getTime()));
+				updateMunicipalityStmt.setLong(stmtindex++, selectMunicipalityRs.getLong("muniid"));
+				System.out.println("Update Municipality Statement ===" + updateMunicipalityStmt.toString() + "===");
+				updateMunicipalityStmt.executeUpdate();
 			} else {
 				if(countryDBId == COUNTRYIDUNSET) {
 					String selectCountrySql = "SELECT l.id AS countryid " +
@@ -278,28 +297,27 @@ public class HousenumberList {
 					}
 				}
 
-				insertMunicipalityStmt.setLong(1, countryDBId);
-				insertMunicipalityStmt.setString(2, getMunicipalityName());
+				stmtindex = 1;
+				insertMunicipalityStmt.setLong(stmtindex++, countryDBId);
+				insertMunicipalityStmt.setString(stmtindex++, getMunicipalityName());
 				if((getMunicipalityRef() != null) && !getMunicipalityRef().equals(""))
-					insertMunicipalityStmt.setString(3, getMunicipalityRef());
+					insertMunicipalityStmt.setString(stmtindex++, getMunicipalityRef());
 				else
-					insertMunicipalityStmt.setString(3, "dummy");
+					insertMunicipalityStmt.setString(stmtindex++, "dummy");
 				if((hierarchy != null) && !hierarchy.equals(""))
-					insertMunicipalityStmt.setString(4, hierarchy);
+					insertMunicipalityStmt.setString(stmtindex++, hierarchy);
 				else
-					insertMunicipalityStmt.setString(4, "");
-				if(isSubareaActive())
-					insertMunicipalityStmt.setString(5, "y");
-				else
-					insertMunicipalityStmt.setString(5, "n");
-				if(housenumberadditionsexactly)
-					insertMunicipalityStmt.setString(6, "y");
-				else
-					insertMunicipalityStmt.setString(6, "n");
-				if(isOfficialgeocoordinates())
-					insertMunicipalityStmt.setString(7, "y");
-				else
-					insertMunicipalityStmt.setString(7, "n");
+					insertMunicipalityStmt.setString(stmtindex++, "");
+				insertMunicipalityStmt.setString(stmtindex++, isSubareaActive() ? "y" : "n");
+				insertMunicipalityStmt.setString(stmtindex++, housenumberadditionsexactly ? "y" : "n");
+				insertMunicipalityStmt.setString(stmtindex++, isOfficialgeocoordinates() ? "y" : "n");
+				insertMunicipalityStmt.setString(stmtindex++, getSourcelistUrl());
+				insertMunicipalityStmt.setString(stmtindex++, getsourcelistCopyright());
+				insertMunicipalityStmt.setString(stmtindex++, getsourcelistUseage());
+				insertMunicipalityStmt.setDate(stmtindex++, new java.sql.Date(getContentDate().getTime()));
+				insertMunicipalityStmt.setDate(stmtindex++, new java.sql.Date(getFileDate().getTime()));
+				System.out.println("Insert Municipality Statement ===" + insertMunicipalityStmt.toString() + "===");
+
 				selectMunicipalityRs = insertMunicipalityStmt.executeQuery();
 				if (selectMunicipalityRs.next()) {
 					setMunicipalityDBId(selectMunicipalityRs.getLong("id"));
@@ -428,18 +446,6 @@ public class HousenumberList {
 	public String getCountrycode() {
 		return countrycode;
 	}
-
-	public String getFieldseparator() {
-		return this.housenumberadditionseparator;
-	}
-
-	public String getFieldseparator2() {
-		return this.housenumberadditionseparator2;
-	}
-
-	public String getImportfile() {
-		return this.filename;
-	}
 	
 	/**
 	 * @return the municipalityDBId
@@ -459,43 +465,33 @@ public class HousenumberList {
 	 * @return the municipalityRef
 	 */
 	public String getMunicipalityRef() {
-		return municipalityRef;
+		return this.municipalityRef;
 	}
 
-	/**
-	 * @return the municipalityIDList
-	 */
-	public String getMunicipalityIDListEntry(String key) {
-		return this.municipalityIDList.get(key);
-	}
-
-	public String getSourceCoordinateSystem() {
-		return this.coordinatesSourceSrid;
-	}
-
-	public String getSourceGeocoordinateText() {
-		return this.coordinatesSourceText;
+	public String getSourcelistUrl() {
+		return this.sourcelistUrl;
 	}
 	
-	/**
-	 * @return the streetIDList
-	 */
-	public String getStreetIDListEntry(String key) {
-		return this.streetIDList.get(key);
+	public String getsourcelistCopyright() {
+		return this.sourcelistCopyright;
 	}
 
-	/**
-	 * @return the subareaMunicipalityIDList
-	 */
-	public String getSubareaMunicipalityIDListEntry(String key) {
-		return this.subareaMunicipalityIDList.get(key);
+	public String getsourcelistUseage() {
+		return this.sourcelistUseage;
 	}
 
-	/**
-	 */
-	public boolean isDistingishHousenumberByCoordinates() {
-		return latlonforUniqueness;
+	public Date getContentDate() {
+		return this.sourcelistContentdate;
 	}
+
+	public Date getFileDate() {
+		return this.sourcelistFiledate;
+	}
+	
+/*	public String getSourceGeocoordinateText() {
+		return this.coordinatesSourceText;
+	}
+*/	
 
 	/**
 	 * @return the officialgeocoordinates
@@ -549,49 +545,34 @@ public class HousenumberList {
 	}
 
 	/**
-	 * @param municipalityIDList the municipalityIDList to set
-	 */
-	public void setMunicipalityIDList(Map<String, String> municipalityIDList) {
-		this.municipalityIDList = municipalityIDList;
-	}
-
-	/**
-	 * @param streetIDList the streetIDList to set
-	 */
-	public void setStreetIDList(Map<String, String> streetIDList) {
-		this.streetIDList = streetIDList;
-	}
-
-	/**
-	 * @param subareaMunicipalityIDList the subareaMunicipalityIDList to set
-	 */
-	public void setSubareaMunicipalityIDList(
-			Map<String, String> subareaMunicipalityIDList) {
-		this.subareaMunicipalityIDList = subareaMunicipalityIDList;
-	}
-
-	/**
 	 * @param subareaActive the subareaActive to set
 	 */
 	public void setSubareaActive(boolean subareaActive) {
 		this.subareaActive = subareaActive;
 	}
 
-	public void setSourceCoordinateSystem(String sourcesrid) {
-		this.coordinatesSourceSrid = sourcesrid;
-	}
-
-	public void setSourceGeocoordinateText(String sourcetext) {
+/*	public void setSourceGeocoordinateText(String sourcetext) {
 		this.coordinatesSourceText = sourcetext;
 	}
-
-	public void setImportfile(String filename) {
-		this.filename = filename;
+*/
+	public void setSourcelistUrl(String downloadurl) {
+		this.sourcelistUrl = downloadurl;
 	}
 
-	public void setFieldseparators(String separator1, String separator2) {
-		this.housenumberadditionseparator = separator1;
-		this.housenumberadditionseparator2 = separator2;
+	public void setSourcelistCopyright(String copyrighttext) {
+		this.sourcelistCopyright = copyrighttext;
+	}
+
+	public void setSourcelistUseage(String useagetext) {
+		this.sourcelistUseage = useagetext;
+	}
+
+	public void setContentDate(Date contentdate) {
+		this.sourcelistContentdate = contentdate;
+	}
+
+	public void setFileDate(Date filedate) {
+		this.sourcelistFiledate = filedate;
 	}
 
 	/**
@@ -601,15 +582,6 @@ public class HousenumberList {
 		this.officialgeocoordinates = officialgeocoordinates;
 	}
 
-	/**
-	 * use two or more identical housenumbers, if they have different geocoordinates.
-	 * <br>Works only, if official geocoordinates are available
-	 * @param distingish  use them all (true) or only one (false)
-	 */
-	public void setDistingishHousenumberByCoordinates(boolean distingish) {
-		latlonforUniqueness = distingish;
-	}
-	
 	public static void connectDB(Connection housenumberdbconn) {
 		housenumberConn = housenumberdbconn;
 	}

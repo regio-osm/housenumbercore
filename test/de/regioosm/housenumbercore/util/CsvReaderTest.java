@@ -2,16 +2,18 @@ package de.regioosm.housenumbercore.util;
 
 import static org.junit.Assert.*;
 
+import java.nio.charset.Charset;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
 import de.regioosm.housenumbercore.util.CsvReader;
 import de.regioosm.housenumbercore.util.HousenumberList;
 import de.regioosm.housenumbercore.util.ImportAddress;
-import de.regioosm.housenumbercore.util.CsvReader.HEADERFIELD;
 
 public class CsvReaderTest {
 
@@ -33,65 +35,53 @@ public class CsvReaderTest {
 
 	@Test
 	public void CsvReaderTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("dummyfile");
-		housenumberlist.setCountrycode("DE");
+		CsvImportparameter importparameter = new CsvImportparameter();
 
-		CsvReader reader = new CsvReader(housenumberlist, "UTF-8");
+		importparameter.setCountrycode("DE");
+		importparameter.setImportfile("dummyfile", Charset.forName("UTF-8"));
+
+		CsvReader reader = new CsvReader(importparameter);
+		fail("incomplete");
 	}
 
 	@Test( expected = IllegalArgumentException.class )
 	public void CsvReaderExceptionTest() {
 		HousenumberList housenumberlist = new HousenumberList();
 
-		CsvReader reader = new CsvReader(housenumberlist, "UTF-8");
-	}
-
-	@Test
-	public void getFieldseparatorTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("dummyfile");
-		housenumberlist.setCountrycode("DE");
-
-		CsvReader reader = new CsvReader(housenumberlist, "UTF-8");
-		reader.setFieldSeparator(";");
-		assertEquals(";", reader.getFieldSeparator());
+		CsvImportparameter importparameter = new CsvImportparameter();
+		importparameter.setCountrycode("DE");
+		importparameter.setImportfile(null, Charset.forName("UTF-8"));
+		
+		CsvReader reader = new CsvReader(importparameter);
+		fail("incomplete");
 	}
 
 	@Test
 	public void setHousenumberFieldseparatorsTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("dummyfile");
-		housenumberlist.setCountrycode("DE");
 
-		CsvReader reader = new CsvReader(housenumberlist, "UTF-8");
-		reader.setHousenumberFieldseparators(" ",  "/");
+		CsvImportparameter importparameter = new CsvImportparameter();
+		importparameter.setCountrycode("DE");
+		importparameter.setImportfile("dummyfile", Charset.forName("UTF-8"));
+		importparameter.setHousenumberFieldseparators(" ",  "/");
+		
+		CsvReader reader = new CsvReader(importparameter);
+		fail("incomplete");
 	}
 
 	@Test
-	public void setFieldSeparatorTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("dummyfile");
-		housenumberlist.setCountrycode("DE");
+	public void executeTest() {
 
-		CsvReader reader = new CsvReader(housenumberlist, "UTF-8");
-		reader.setFieldSeparator(";");
-		assertEquals(";", reader.getFieldSeparator());
-	}
+		CsvImportparameter importparameter = new CsvImportparameter();
+		importparameter.setCountrycode("DE");
+		importparameter.setImportfile("test/resources/Aachen_Housenumberlist.csv", Charset.forName("UTF-8"));
+		importparameter.setSourceCoordinateSystem("4326");
+		importparameter.setFieldSeparator(",");
+		importparameter.setHeaderfield(HEADERFIELD.housenumber, 4);
+		importparameter.setHeaderfield(HEADERFIELD.housenumberaddition, 5);
+		importparameter.setHeaderfield(HEADERFIELD.lat, 13);
+		importparameter.setHeaderfield(HEADERFIELD.lon, 14);
 
-	@Test
-	public void nextTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("test/resources/Aachen_Housenumberlist.csv");
-		housenumberlist.setCountrycode("DE");
-		housenumberlist.setSourceCoordinateSystem("4326");
-
-		CsvReader csvreader = new CsvReader(housenumberlist, "UTF-8");
-		csvreader.setFieldSeparator(",");
-		csvreader.setHeaderfield(HEADERFIELD.housenumber, 4);
-		csvreader.setHeaderfield(HEADERFIELD.housenumberaddition, 5);
-		csvreader.setHeaderfield(HEADERFIELD.lat, 13);
-		csvreader.setHeaderfield(HEADERFIELD.lon, 14);
+		CsvReader csvreader = new CsvReader(importparameter);
 
 		ImportAddress address = null;
 		try {
@@ -117,11 +107,12 @@ public class CsvReaderTest {
 
 	@Test
 	public void initialiseLuxembourgTest() {
-		HousenumberList housenumberlist = new HousenumberList();
-		housenumberlist.setImportfile("dummy");
-		housenumberlist.setCountrycode("LU");
+		CsvImportparameter importparameter = new CsvImportparameter();
 
-		CsvReader csvreader = new CsvReader(housenumberlist, "UTF-8");
+		importparameter.setCountrycode("LU");
+		importparameter.setImportfile("dummy", Charset.forName("UTF-8"));
+		
+		CsvReader csvreader = new CsvReader(importparameter);
 		assertEquals("Betzdorf", csvreader.getLuxembourgMunicipalityforSubarea("Berg (Betzdorf)"));
 	}
 
