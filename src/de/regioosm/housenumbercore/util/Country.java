@@ -1,6 +1,7 @@
 package de.regioosm.housenumbercore.util;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,11 +12,33 @@ public class Country {
 	private static Connection housenumberConn = null;
 	private static Map<String, String> countrylist = new HashMap<>();
 
+	public static void connectDB() {
+		Applicationconfiguration configuration = new Applicationconfiguration();
+
+		try {
+			System.out.println("ok, jetzt Class.forName Aufruf ...");
+			Class.forName("org.postgresql.Driver");
+			System.out.println("ok, nach Class.forName Aufruf!");
+		}
+		catch(ClassNotFoundException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+		try {
+			String url_hausnummern = configuration.db_application_url;
+			housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
+		}
+		catch( SQLException e) {
+			e.printStackTrace();
+			return;
+		}
+	}
+	
 	public static void connectDB(Connection housenumberConn) {
 		Country.housenumberConn = housenumberConn;
 	}
 
-	public static String getCountryShortname(String country) throws Exception {
+	public static String getCountryShortname(String country) {
 		String result = "";
 
 		if((countrylist != null) && (countrylist.size() > 0)) {
@@ -25,7 +48,7 @@ public class Country {
 		}
 		
 		if(housenumberConn == null) {
-			throw new Exception("Class Country can only be used, when first call method connectDB");
+			connectDB();
 		}
 		try {
 
@@ -54,7 +77,7 @@ public class Country {
 		}
 	}
 
-	public static String getCountryLongname(String countrycode) throws Exception {
+	public static String getCountryLongname(String countrycode) {
 
 		if((countrylist != null) && (countrylist.size() > 0)) {
 			if(countrylist.containsValue(countrycode)) {
@@ -66,7 +89,7 @@ public class Country {
 		}
 
 		if(housenumberConn == null) {
-			throw new Exception("please first call .connectDB to further use Country Class");
+			connectDB();
 		}
 		try {
 

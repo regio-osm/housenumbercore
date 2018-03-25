@@ -446,10 +446,15 @@ String hierarchy = "";
 					actnodes = (NodeList) xp.evaluate(actxpathstring, actaddress, XPathConstants.NODESET);
 					xpath_endtime = new Date();
 					xpathms += (xpath_endtime.getTime() - xpath_starttime.getTime());
+					String housenumberaddition = "";
 				    for (int nodesindex = 0; nodesindex < actnodes.getLength(); nodesindex++) {
 				    	Node actnode = (Node) actnodes.item(nodesindex);
 				    	//System.out.println(" child # " + nodesindex + "  [" + actnode.getNodeName() + "] === " + actnode.getTextContent() + "===");
-		  	    		address.setHousenumberaddition(actnode.getTextContent().trim());
+				    	housenumberaddition += actnode.getTextContent().trim();
+				    }
+				    if(!housenumberaddition.equals("")) {
+//TODO add housenumberseparation from importparameter, when available
+				    	address.setHousenumber(address.getHousenumber() + housenumberaddition);
 				    }
 		    	}
 

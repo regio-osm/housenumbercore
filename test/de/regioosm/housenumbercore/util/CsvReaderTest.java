@@ -3,6 +3,10 @@ package de.regioosm.housenumbercore.util;
 import static org.junit.Assert.*;
 
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -16,6 +20,7 @@ import de.regioosm.housenumbercore.util.HousenumberList;
 import de.regioosm.housenumbercore.util.ImportAddress;
 
 public class CsvReaderTest {
+	private static Connection housenumberConn = null;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -40,33 +45,19 @@ public class CsvReaderTest {
 		importparameter.setCountrycode("DE");
 		importparameter.setImportfile("dummyfile", Charset.forName("UTF-8"));
 
-		CsvReader reader = new CsvReader(importparameter);
-		fail("incomplete");
+		assertNotNull(new CsvReader(importparameter));
 	}
 
 	@Test( expected = IllegalArgumentException.class )
 	public void CsvReaderExceptionTest() {
-		HousenumberList housenumberlist = new HousenumberList();
 
 		CsvImportparameter importparameter = new CsvImportparameter();
 		importparameter.setCountrycode("DE");
 		importparameter.setImportfile(null, Charset.forName("UTF-8"));
 		
-		CsvReader reader = new CsvReader(importparameter);
-		fail("incomplete");
+		assertNotNull(new CsvReader(importparameter));
 	}
 
-	@Test
-	public void setHousenumberFieldseparatorsTest() {
-
-		CsvImportparameter importparameter = new CsvImportparameter();
-		importparameter.setCountrycode("DE");
-		importparameter.setImportfile("dummyfile", Charset.forName("UTF-8"));
-		importparameter.setHousenumberFieldseparators(" ",  "/");
-		
-		CsvReader reader = new CsvReader(importparameter);
-		fail("incomplete");
-	}
 
 	@Test
 	public void executeTest() {
@@ -82,9 +73,18 @@ public class CsvReaderTest {
 		importparameter.setHeaderfield(HEADERFIELD.lon, 14);
 
 		CsvReader csvreader = new CsvReader(importparameter);
-
-		ImportAddress address = null;
-		fail("incomplete");
+		Map<Municipality, HousenumberList> lists = csvreader.execute();
+		assertEquals(1, lists.size());
+		for(Map.Entry<Municipality, HousenumberList> listentry : lists.entrySet()) {
+			Municipality municipality = listentry.getKey();
+			HousenumberList housenumberlist = listentry.getValue();
+			ImportAddress testaddress = new ImportAddress();
+			testaddress.setPostcode("52076");
+			testaddress.setSubArea("");
+			testaddress.setStreet("Aachener Straße");
+			testaddress.setHousenumber("13");
+			assertTrue(housenumberlist.contains(testaddress));
+		}
 /*
 		try {
 			address = csvreader.next();

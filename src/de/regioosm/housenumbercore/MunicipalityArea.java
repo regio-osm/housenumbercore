@@ -144,7 +144,7 @@ public class MunicipalityArea extends Municipality {
 		}
 
 		Country.connectDB(housenumberConn);
-		if(Country.getCountryShortname(country).equals(""))
+		if((country.length() > 2) && Country.getCountryShortname(country).equals(""))
 			throw new IllegalStateException("invalid or missing Country");
 
 		if((municipalityName == null) || municipalityName.equals("")) {
