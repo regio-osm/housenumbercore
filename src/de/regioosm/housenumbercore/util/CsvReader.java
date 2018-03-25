@@ -466,8 +466,6 @@ public class CsvReader {
 					housenumberlist = lists.get(municipality);
 				else {
 					housenumberlist = new HousenumberList(municipality);
-if(lists.size() > 10)
-	break;
 				}
 				if(!housenumberlist.contains(address)) {
 					housenumberlist.addHousenumber(address);
