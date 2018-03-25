@@ -23,11 +23,13 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -85,27 +87,28 @@ public class MunicipalityJobs {
 	public MunicipalityJobs() {
 		Applicationconfiguration configuration = new Applicationconfiguration();
 
-		try {
-			System.out.println("ok, jetzt Class.forName Aufruf ...");
-			Class.forName("org.postgresql.Driver");
-			System.out.println("ok, nach Class.forName Aufruf!");
+		if(housenumberConn == null) {
+			try {
+				System.out.println("ok, jetzt Class.forName Aufruf ...");
+				Class.forName("org.postgresql.Driver");
+				System.out.println("ok, nach Class.forName Aufruf!");
+			}
+			catch(ClassNotFoundException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			try {
+				String url_hausnummern = configuration.db_application_url;
+				housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
+	
+				String url_mapnik = configuration.db_osm2pgsql_url;
+				osmdbConn = DriverManager.getConnection(url_mapnik, configuration.db_osm2pgsql_username, configuration.db_osm2pgsql_password);
+			}
+			catch( SQLException e) {
+				e.printStackTrace();
+				return;
+			}
 		}
-		catch(ClassNotFoundException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		try {
-			String url_hausnummern = configuration.db_application_url;
-			housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
-
-			String url_mapnik = configuration.db_osm2pgsql_url;
-			osmdbConn = DriverManager.getConnection(url_mapnik, configuration.db_osm2pgsql_username, configuration.db_osm2pgsql_password);
-		}
-		catch( SQLException e) {
-			e.printStackTrace();
-			return;
-		}
-		
 	}
 
 	private static class logger {
@@ -283,7 +286,7 @@ public class MunicipalityJobs {
 // this helps to differentiate identical names, if they are really 
 // more than one in a municipality (for example, in Cologne, Germany)
 				"tags->'postal_code' AS streetpostcode, " +
-				"ST_AsText(way) AS way_astext, way, %%tags AS taglist " +
+				"ST_AsText(ST_Transform(way,4326)) AS way_astext, way, %%tags AS taglist " +
 				"FROM planet_line WHERE " +
 				"(ST_Contains(?::geometry, way) OR ST_Crosses(?::geometry, way)) AND " +
 				"exist(tags, 'highway') AND " +
@@ -572,6 +575,8 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			dis.close();
 			
 				// first, save upload data as local file, just for checking or for history
+			DateFormat timeformatterUSlong = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+			timeformatterUSlong.setTimeZone(TimeZone.getTimeZone("UTC"));
 			DateFormat time_formatter = new SimpleDateFormat("yyyyMMdd-HHmmss'Z'");
 			DateFormat germanyformatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 			String downloadtime = time_formatter.format(new Date());
@@ -642,7 +647,12 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 		        			keyvalues.put(tag.getKey(), tag.getValue());
 		        			osmtags.add(new OSMTag(tag.getKey(), tag.getValue()));
 		        		}
-
+		        		osmtags.add(new OSMTag("osm_timestamp", timeformatterUSlong.format(waymap.getValue().getTimestamp())));
+		        		osmtags.add(new OSMTag("osm_user", waymap.getValue().getUser().getName()));
+		        		osmtags.add(new OSMTag("osm_uid", "" + waymap.getValue().getUser().getId()));
+		        		osmtags.add(new OSMTag("osm_version", "" + waymap.getValue().getVersion()));
+		        		osmtags.add(new OSMTag("osm_changeset", "" + waymap.getValue().getChangesetId()));
+		        		
 							// if actual osm-way has been marked as to ignore (by a user in website), 
 							// then ignore it really (doubled named ways, for example, in allotments) 
 						if(ignoreStreetsBlacklist.contains(objectid)) {
@@ -705,6 +715,10 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 						NodeContainer nodec = (NodeContainer) entityContainer;
 						Node node = nodec.getEntity();
+//						node.setChangesetId(entity.getChangesetId());
+//						node.setUser(entity.getUser());
+//						node.setTimestamp(entity.getTimestamp());
+//						node.setVersion(entity.getVersion());
 						//System.out.println("Node lon: "+node.getLongitude() + "  lat: "+node.getLatitude()+"===");
 
 						allNodes.put(entity.getId(), node);
@@ -715,7 +729,12 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 						WayContainer wayc = (WayContainer) entityContainer;
 						Way way = wayc.getEntity();
-		    			allWays.put(entity.getId(), way);
+//						way.setChangesetId(entity.getChangesetId());
+//						way.setUser(entity.getUser());
+//						way.setTimestamp(entity.getTimestamp());
+//						way.setVersion(entity.getVersion());
+
+						allWays.put(entity.getId(), way);
 			        
 			        } else if (entity instanceof Relation) {
 			        	// do nothing to collection relations

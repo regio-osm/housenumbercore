@@ -1,6 +1,7 @@
 package de.regioosm.housenumbercore.util;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -39,6 +40,28 @@ public class OSMStreet extends Street implements Comparable {
 		super(municipality, streetname);
 		if(validHighwayTypes == null)
 			setDefaultValidHighwayTypes();
+
+		Applicationconfiguration configuration = new Applicationconfiguration();
+
+		if(housenumberConn == null) {
+			try {
+				System.out.println("ok, jetzt Class.forName Aufruf ...");
+				Class.forName("org.postgresql.Driver");
+				System.out.println("ok, nach Class.forName Aufruf!");
+			}
+			catch(ClassNotFoundException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			try {
+				String url_hausnummern = configuration.db_application_url;
+				housenumberConn = DriverManager.getConnection(url_hausnummern, configuration.db_application_username, configuration.db_application_password);
+			}
+			catch( SQLException e) {
+				e.printStackTrace();
+				return;
+			}
+		}
 	}
 
 	/**
