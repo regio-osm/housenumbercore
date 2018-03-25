@@ -376,22 +376,22 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	 * @param muniarea
 	 * @return
 	 */
-	private Map<Street, OSMStreet> getOSMStreetsFromOverpass(MunicipalityArea muniarea) {
+	private Map<Street, OSMStreet> getOSMStreetsFromOverpass(final MunicipalityArea muniarea) {
 		URL                url; 
 		URLConnection      urlConn; 
 		BufferedReader     dis;
 
 		final Integer MAXOVERPASSTRIES = 3;
 
-		Map<Street, OSMStreet> streets = new TreeMap<>();
+		final Map<Street, OSMStreet> streets = new TreeMap<>();
 		
-		IdTracker availableNodes = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
-		IdTracker availableWays = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
-		IdTracker availableRelations = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		final IdTracker availableNodes = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		final IdTracker availableWays = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
+		final IdTracker availableRelations = IdTrackerFactory.createInstance(IdTrackerType.Dynamic);
 		
-		Map<Long, Node> allNodes = new HashMap<>();
-		Map<Long, Way> allWays = new HashMap<>();
-		Map<Long, Relation> allRelations = new HashMap<>();
+		final Map<Long, Node> allNodes = new HashMap<>();
+		final Map<Long, Way> allWays = new HashMap<>();
+		final Map<Long, Relation> allRelations = new HashMap<>();
 		
 			
 		
@@ -614,7 +614,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 				}
 			}
 
-			List<Long> ignoreStreetsBlacklist = getBlacklistStreetOSMIds();
+			final List<Long> ignoreStreetsBlacklist = getBlacklistStreetOSMIds();
 			
 			
 			Sink sinkImplementation = new Sink() {

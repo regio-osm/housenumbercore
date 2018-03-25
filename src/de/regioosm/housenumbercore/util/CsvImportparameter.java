@@ -119,7 +119,7 @@ public class CsvImportparameter {
 	}
 	
 	/**
-	 * @return the municipalityIDList
+	 * @return the name of municipality, if input parameter key is known. Otherwise, it returns null
 	 */
 	public String getMunicipalityIDListEntry(String key) {
 		return this.municipalityIDList.get(key);
@@ -137,7 +137,7 @@ public class CsvImportparameter {
 	}
 
 	/**
-	 * @return the subareaMunicipalityIDList
+	 * @return the name of subarea of municipality, if input parameter key is known. Otherwise, it returns null
 	 */
 	public String getSubareaMunicipalityIDListEntry(String key) {
 		return this.subareaMunicipalityIDList.get(key);

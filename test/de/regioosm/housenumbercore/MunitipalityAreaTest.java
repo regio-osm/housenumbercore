@@ -120,7 +120,7 @@ public class MunitipalityAreaTest {
 	@Test
 	public void searchTest() {
 		try {
-			assertEquals(MunicipalityArea.search("DE", "Augsburg", "09761000", "Bärenkeller", null), 1);
+			assertEquals(1, MunicipalityArea.search("DE", "Augsburg", "09761000", "Bärenkeller", null));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -6,6 +6,7 @@ public class ImportAddress extends Address {
 	private final String EPSG_WGS84 = "4326";
 
 	private String municipalityRef = null;
+	private String municipalityId= null;
 	protected String note = null;
 	private Long streetDBId = 0L;
 
@@ -49,6 +50,24 @@ public class ImportAddress extends Address {
 		return this.municipalityRef;
 	}
 
+	/**
+	 * get a technical Id for municipality, when it's name is only indirectly avaiable via extra ref muni Id -> name 
+	 * In this case, set extra ref in object importparameter
+	 * @param municipalityRef the municipalityRef to set
+	 */
+	public String getMunicipalityId() {
+		return this.municipalityId;
+	}
+
+	/**
+	 * get the name for municipality, given only the Id of the municipality. 
+	 * It uses extra ref in object importparameter, if set
+	 * @param municipalityRef the municipalityRef to set
+	 */
+	public String getMunicipalityById(CsvImportparameter importparameter) {
+		return importparameter.getMunicipalityIDListEntry(this.municipalityId);
+	}
+	
 	public String getNote() {
 		return this.note;
 	}
@@ -79,6 +98,15 @@ public class ImportAddress extends Address {
 	 */
 	public void setMunicipalityRef(String municipalityRef) {
 		this.municipalityRef = municipalityRef;
+	}
+
+	/**
+	 * set a technical Id for municipality, when it's name is only indirectly avaiable via extra ref muni Id -> name 
+	 * In this case, set extra ref in object importparameter
+	 * @param municipalityRef the municipalityRef to set
+	 */
+	public void setMunicipalityId(String municipalityid) {
+		this.municipalityId = municipalityid;
 	}
 
 	/**

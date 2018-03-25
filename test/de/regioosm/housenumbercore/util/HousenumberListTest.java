@@ -122,7 +122,7 @@ public class HousenumberListTest {
 			assertEquals("", checkadr.getNote());
 			assertEquals(ImportAddress.lonUnset, checkadr.getLon(), 0.1d);
 			assertEquals(ImportAddress.latUnset, checkadr.getLat(), 0.1d);
-			assertEquals("", checkadr.getSourceSrid());
+			assertEquals(null, checkadr.getSourceSrid());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
