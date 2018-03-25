@@ -29,35 +29,27 @@
   	<dependency>
   		<groupId>org.locationtech.jts</groupId>
   		<artifactId>jts-core</artifactId>
-  		<version>1.15.1-SNAPSHOT</version>
+  		<version>1.15.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.postgresql</groupId>
-  		<artifactId>postgresql-jdbc4</artifactId>
-  		<version>9.4-1204</version>
-  		<scope>system</scope>
-  		<systemPath>${project.basedir}/src/main/resources/postgresql-9.4-1204-jdbc4.jar</systemPath>
+  		<artifactId>jdbc</artifactId>
+  		<version>9.3.jdbc4-SNAPSHOT</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.osmosis.openstreetmap</groupId>
+  		<groupId>org.openstreetmap.osmosis</groupId>
   		<artifactId>osmosis-core</artifactId>
-  		<version>0.6</version>
-  		<scope>system</scope>
-  		<systemPath>${project.basedir}/src/main/resources/osmosis-core--SNAPSHOT.jar</systemPath>
+  		<version>0.43-SNAPSHOT</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.osmosis.openstreetmap</groupId>
+  		<groupId>org.openstreetmap.osmosis</groupId>
   		<artifactId>osmosis-pgsnapshot</artifactId>
-  		<version>0.6</version>
-  		<scope>system</scope>
-  		<systemPath>${project.basedir}/src/main/resources/osmosis-pgsnapshot--SNAPSHOT.jar</systemPath>
+  		<version>0.43-SNAPSHOT</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.osmosis.openstreetmap</groupId>
+  		<groupId>org.openstreetmap.osmosis</groupId>
   		<artifactId>osmosis-xml</artifactId>
-  		<version>0.6</version>
-  		<scope>system</scope>
-  		<systemPath>${project.basedir}/src/main/resources/osmosis-xml--SNAPSHOT.jar</systemPath>
+  		<version>0.43-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.postgis</groupId>
