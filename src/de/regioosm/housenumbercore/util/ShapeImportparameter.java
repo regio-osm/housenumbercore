@@ -1,6 +1,7 @@
 package de.regioosm.housenumbercore.util;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 /*
 	V1.1, 16.02.2011, Dietmar Seifert
@@ -12,14 +13,17 @@ import java.nio.charset.Charset;
 */
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
-public class CsvImportparameter {
+public class ShapeImportparameter {
 	public enum HEADERFIELD {region, district, municipality, municipalityid, municipalityref, postcode, 
 		subarea, subareaid, street, streetid, housenumber, housenumberaddition, 
-		housenumberaddition2, note, sourcesrid, lon, lat, ignore};
+		housenumberaddition2, note, sourcesrid, geometry, ignore};
 
+	private List<String> municipalityUpperCaseList = new ArrayList<>();
+	private List<String> municipalityLowerCaseList = new ArrayList<>();
 
 	private String countrycode = "";
 	
@@ -54,7 +58,7 @@ public class CsvImportparameter {
 	/**
 	 * collect all housenumbers, as found in input file. Later, the housenumbers will be stored from this structure to DB. 
 	 */
-	private Map<HEADERFIELD, Integer> headerfields = new HashMap<>();
+	private Map<HEADERFIELD, String> headerfields = new HashMap<>();
 	
 	/**
 	 * List of municipality ids, when import file contains only references to municipalities
@@ -88,14 +92,14 @@ public class CsvImportparameter {
 	 * @return the column for field, in Range 0 until number of fields minus 1
 	 * -1 will be returned, if field name wasn't found
 	 */
-	public int getHeaderfieldColumn(HEADERFIELD municipality) {
+	public String getHeaderfieldColumn(HEADERFIELD municipality) {
 		if((municipality == null) || municipality.equals(""))
-			return -1;
+			return "";
 
 		if(headerfields.containsKey(municipality))
 			return headerfields.get(municipality);
 
-		return -1;
+		return "";
 	}
 
 	public String getFieldSeparator() {
@@ -168,8 +172,8 @@ public class CsvImportparameter {
 	 * store information, what field "column" contains
 	 * @param headerfields the headerfields to set
 	 */
-	public void setHeaderfield(HEADERFIELD field, int column) {
-		this.headerfields.put(field, column);
+	public void setHeaderfield(HEADERFIELD field, String name) {
+		this.headerfields.put(field, name);
 	}
 	
 	
@@ -217,5 +221,8 @@ public class CsvImportparameter {
 		this.housenumberadditionseparator2 = separator2;
 	}
 
-	
+	public void setMunicipalityUpperLowerList(List<String> uppercaselist, List<String> lowercaselist) {
+		this.municipalityUpperCaseList = uppercaselist;
+		this.municipalityLowerCaseList = lowercaselist;
+	}
 }

@@ -380,7 +380,7 @@ public class Address {
 			output += " " + street + " " + housenumber;
 		else
 			output += " " + place + " " + housenumber;
-		output += " lon= " + lon + " lat=" + lat;
+		output += " lon=" + lon + " lat=" + lat;
 		if((sourcesrid != null) && !sourcesrid.equals(""))
 			output += " (EPSG: " + sourcesrid + ")";
 		return output;

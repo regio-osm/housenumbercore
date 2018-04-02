@@ -7,6 +7,7 @@ public class ImportAddress extends Address {
 
 	private String municipalityRef = null;
 	private String municipalityId= null;
+	private String adminHierarchy = null;
 	protected String note = null;
 	private Long streetDBId = 0L;
 
@@ -34,6 +35,9 @@ public class ImportAddress extends Address {
 		this.setCoordinatesSourceText(sourcetext);
 	}
 
+	public String getAdminHierarchy() {
+		return this.adminHierarchy;
+	}
 
 	/**
 	 * @return the coordinatesourcetext
@@ -67,7 +71,7 @@ public class ImportAddress extends Address {
 	public String getMunicipalityById(CsvImportparameter importparameter) {
 		return importparameter.getMunicipalityIDListEntry(this.municipalityId);
 	}
-	
+
 	public String getNote() {
 		return this.note;
 	}
@@ -84,7 +88,10 @@ public class ImportAddress extends Address {
 		return this.streetDBId;
 	}
 	
-
+	public void setAdminHierarchy(String adminhierarchy) {
+		this.adminHierarchy = adminhierarchy;
+	}
+	
 	public void setNote(String note) {
 		this.note = note;
 	}
@@ -131,6 +138,8 @@ public class ImportAddress extends Address {
 		
 		if ((municipalityRef != null) && !municipalityRef.equals(""))
 			output += " muni-ref: " + municipalityRef;
+		if ((adminHierarchy != null) && !adminHierarchy.equals(""))
+			output += " AdminHierarchy: " + adminHierarchy;
 		if ((note != null) && !note.equals(""))
 			output += " Note: " + note;
 		if (streetDBId != 0L)

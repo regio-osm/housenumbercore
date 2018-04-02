@@ -250,8 +250,8 @@ public class MunicipalityArea extends Municipality {
 		boolean generatedpolygonstate = false;
 
 		String actual_polygon_part = "";
-		String complete_polygon = "";
-		String complete_polygon_idlist = "";
+		String completePolygonWKB = "";
+		String completePolygonIdlist = "";
 		Long polygon_id = 0L;
 
 		String osmadminrelationSql = "";
@@ -385,10 +385,10 @@ public class MunicipalityArea extends Municipality {
 				}
 			
 				if(found_osm_relation_id.equals("")) {
-					// first usable relation-id
-				found_osm_relation_id = osmadminrelationRs.getString("id");
-				municipality_officialkeysid = local_actual_municipality_officialkeysid;
-				municipality_officialkeysid_origin_length = local_actual_municipality_officialkeysid_origin_length;
+						// first usable relation-id
+					found_osm_relation_id = osmadminrelationRs.getString("id");
+					municipality_officialkeysid = local_actual_municipality_officialkeysid;
+					municipality_officialkeysid_origin_length = local_actual_municipality_officialkeysid_origin_length;
 				} else {
 						// if not first found polygon-part and new relation 
 						// (so really different boundary-polygon): 
@@ -486,51 +486,30 @@ public class MunicipalityArea extends Municipality {
 					System.out.println("Info: got municipality administrationid ==="+municipality_officialkeysid+"===");
 				if(count_correct_relations == 1) {
 						// polygon first or only part, safe in extra variable
-					complete_polygon = actual_polygon_part;
-					complete_polygon_idlist = osmadminrelationRs.getString("id");
+					completePolygonWKB = actual_polygon_part;
+					completePolygonIdlist = osmadminrelationRs.getString("id");
 					polygon_id = osmadminrelationRs.getLong("id");
 					System.out.println("ok, got first part of relation");
 				} else if(count_correct_relations > 1) {
 					System.out.println("ok, got another part of relation");
 	
 					// polygon another part, now union with previous part(s) as a multipolygon
-					System.out.println("Warning: got more than one relation, Select statement was ===" + 
+					System.out.println("Info: got more than one relation, Select statement was ===" + 
 							osmadminrelationSql + "===");
-	
-	
-					String temp_create_multipolygon_sql = "SELECT ST_AsText('" + 
-						complete_polygon + "') AS completepoly, " +
-						"ST_AsText('"+actual_polygon_part+"') as polypart;";
-					System.out.println("temp_create_multipolygon_sql===" + 
-						temp_create_multipolygon_sql+"===");
+		
+					String mergePolygonPartsSql = "SELECT ST_Union(?::geometry, " +
+						"?::geometry) " + "AS unionpolygon;";
 					try {
-						Statement temp_stmt_create_multipolygon = housenumberConn.createStatement();
-						ResultSet temp_rs_create_multipolygon = temp_stmt_create_multipolygon.executeQuery( temp_create_multipolygon_sql );
-						if( temp_rs_create_multipolygon.next() ) {
-							System.out.println("ok, completepoly ===" + 
-								temp_rs_create_multipolygon.getString("completepoly")+"===");
-							System.out.println("ok, polypart ===" + 
-								temp_rs_create_multipolygon.getString("polypart")+"===");
-						}
-					}	// ende try DB-connect
-					catch( SQLException e) {
-						System.out.println("ERROR occured when tried to get " +
-							"both polygon-parts as text. SQL-Statement was ===" + 
-							temp_create_multipolygon_sql+"===");
-						e.printStackTrace();
-						relation_wrong = "invalid-multipolygon";
-					}
-	
-					String mergepolygonpartsSql = "SELECT ST_Union('" + actual_polygon_part + "', " +
-						"'" + complete_polygon + "') " + "AS unionpolygon;";
-					System.out.println("mergepolygonpartsSql==="+mergepolygonpartsSql+"===");
-					try {
-						Statement mergepolygonpartsStmt = housenumberConn.createStatement();
-						ResultSet rs_create_multipolygon = mergepolygonpartsStmt.executeQuery( mergepolygonpartsSql );
-						if( rs_create_multipolygon.next() ) {
-							complete_polygon_idlist += "," + osmadminrelationRs.getString("id");	// add actual polygon osm-id to list of all unioned-polygons
-//TODO handle, that polygon_id can't be set second time
-							complete_polygon = rs_create_multipolygon.getString("unionpolygon");
+						PreparedStatement mergePolygonPartsStmt = housenumberConn.prepareStatement(mergePolygonPartsSql);
+						mergePolygonPartsStmt.setString(1,  completePolygonWKB);
+						mergePolygonPartsStmt.setString(2,  actual_polygon_part);
+						ResultSet mergePolygonPartsRs = mergePolygonPartsStmt.executeQuery();
+						if( mergePolygonPartsRs.next() ) {
+							if (!completePolygonIdlist.equals("") &&
+								(completePolygonIdlist.indexOf(osmadminrelationRs.getString("id")) == -1)) {
+								completePolygonIdlist += "," + osmadminrelationRs.getString("id");	// add actual polygon osm-id to list of all unioned-polygons
+							}
+							completePolygonWKB = mergePolygonPartsRs.getString("unionpolygon");
 						}
 					}	// ende try DB-connect
 					catch( SQLException e) {
@@ -543,7 +522,7 @@ public class MunicipalityArea extends Municipality {
 			} // end over loop of all found relation-records (ends now earlier from 17.11.2011) - while( osmadminrelationRs.next() ) {
 
 			
-			if(complete_polygon.equals("")) {
+			if (completePolygonWKB.equals("") || !relation_wrong.equals("")) {
 				System.out.println("Error with relation, ignored this municipality");
 				System.out.println("no boundary-geometry found for actual municipality, " +
 					"skip rest of work for this municipality");
@@ -553,9 +532,9 @@ public class MunicipalityArea extends Municipality {
 					// ok, abort actual municipality
 				generatedpolygonstate = false;
 			} else {
-				this.adminPolygonWKB = complete_polygon;
+				this.adminPolygonWKB = completePolygonWKB;
 //TODO store main area polygon in subarea-table and set a flag to identify its main state
-				this.adminPolygonOsmIdlist = complete_polygon_idlist;
+				this.adminPolygonOsmIdlist = completePolygonIdlist;
 				this.adminPolygonOsmId = polygon_id;
 				generatedpolygonstate = true;
 				if(storeInDB) {
@@ -752,7 +731,7 @@ public class MunicipalityArea extends Municipality {
 					}
 				}
 				
-				String subpolygonString = "";
+				String actualSubareaPolygonsWKB = "";
 	
 				String selectbefehl_relation_kpl = "SELECT way FROM planet_polygon WHERE " +
 					"osm_id = ?;";
@@ -763,17 +742,17 @@ public class MunicipalityArea extends Municipality {
 						stmt_relation_kpl.toString() + "===");
 				ResultSet rs_relation_kpl = stmt_relation_kpl.executeQuery();
 				Integer count_correct_subrelations = 0;
-				String actual_sub_polygon_part = "";
+				String actualSubareaPolygonPartWKB = "";
 				System.out.println("BEGINN Verarbeitung Sub Relation-kpl ...");
 				while( rs_relation_kpl.next() ) {
 					count_correct_subrelations++;
 	
-					actual_sub_polygon_part = rs_relation_kpl.getString("way");
+					actualSubareaPolygonPartWKB = rs_relation_kpl.getString("way");
 	
 					if(count_correct_subrelations == 1) {
 						System.out.println("ok, got first part of sub relation");
 						// polygon first or only part, safe in extra variable
-						subpolygonString = actual_sub_polygon_part;
+						actualSubareaPolygonsWKB = actualSubareaPolygonPartWKB;
 					} else if(count_correct_subrelations > 1) {
 						System.out.println("ok, got another part of sub relation");
 	
@@ -781,23 +760,21 @@ public class MunicipalityArea extends Municipality {
 						System.out.println("Warning: got more than one sub relation, " +
 							"Select statement was ==="+selectbefehl_relation_kpl+"===");
 	
-						String create_multipolygon_sql = "SELECT ST_Union('"+actual_sub_polygon_part+"', " +
-							"'"+subpolygonString+"') as unionpolygon, ";
-						create_multipolygon_sql += "ST_AsText(ST_Union('"+subpolygonString+"', " +
-							"'"+actual_sub_polygon_part+"')) as justfordebug_unionpolygon_astext;";
-						System.out.println("create_multipolygon_sql for sub relation union ===" +
-							create_multipolygon_sql+"===");
+						String mergeSubAreaPolygonPartsSql = "SELECT ST_Union(?::geometry, " +
+							"?::geometry) as unionsubareapolygon;";
 						try {
-							Statement stmt_create_multipolygon = housenumberConn.createStatement();
-							ResultSet rs_create_multipolygon = stmt_create_multipolygon.executeQuery( create_multipolygon_sql );
-							if( rs_create_multipolygon.next() ) {
-								System.out.println("ok, union sub polygon ===" + 
-									rs_create_multipolygon.getString("justfordebug_unionpolygon_astext")+"===");
-								subpolygonString = rs_create_multipolygon.getString("unionpolygon");
+							PreparedStatement mergeSubAreaPolygonPartsStmt = housenumberConn.prepareStatement(mergeSubAreaPolygonPartsSql);
+							mergeSubAreaPolygonPartsStmt.setString(1, actualSubareaPolygonPartWKB);
+							mergeSubAreaPolygonPartsStmt.setString(2, actualSubareaPolygonsWKB);
+							ResultSet mergeSubAreaPolygonPartsRs = mergeSubAreaPolygonPartsStmt.executeQuery();
+							if( mergeSubAreaPolygonPartsRs.next() ) {
+								actualSubareaPolygonsWKB = mergeSubAreaPolygonPartsRs.getString("unionsubareapolygon");
 							}
 						}	// ende try DB-connect
 						catch( SQLException e) {
 							System.out.println("ERROR occured when tried to create ST_Union sub Polygon");
+							System.out.println(" (cont) betrifft osm-id " + subadminrelationRs.getLong("id") + 
+								" in next-lauf: " + count_correct_subrelations);
 							System.out.println(" (cont.) here original stack ==="+e.toString()+"===");
 							e.printStackTrace();
 							relation_wrong = "invalid-multipolygon";
@@ -889,7 +866,7 @@ public class MunicipalityArea extends Municipality {
 					PreparedStatement updateSuburbStmt = housenumberConn.prepareStatement(updateSuburbSql);
 					stmtindex = 1;
 					updateSuburbStmt.setLong(stmtindex++, subadminrelationRs.getLong("id"));
-					updateSuburbStmt.setString(stmtindex++, subpolygonString);
+					updateSuburbStmt.setString(stmtindex++, actualSubareaPolygonsWKB);
 					updateSuburbStmt.setString(stmtindex++, sub_id);
 					updateSuburbStmt.setLong(stmtindex++, selectSuburbRs.getLong("id"));
 	
@@ -918,7 +895,7 @@ public class MunicipalityArea extends Municipality {
 						insertSuburbStmt.setInt(stmtindex++, subadminrelationRs.getInt("admin_level"));
 						insertSuburbStmt.setString(stmtindex++, sub_id);
 						insertSuburbStmt.setLong(stmtindex++, subadminrelationRs.getLong("id"));
-						insertSuburbStmt.setString(stmtindex++, subpolygonString);
+						insertSuburbStmt.setString(stmtindex++, actualSubareaPolygonsWKB);
 
 						ResultSet insertSuburbRS = insertSuburbStmt.executeQuery();
 						if( insertSuburbRS.next() ) {
