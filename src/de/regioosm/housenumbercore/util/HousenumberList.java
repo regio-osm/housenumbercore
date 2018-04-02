@@ -59,6 +59,7 @@ public class HousenumberList {
 	 * are the geocoordinates are official to import and for directly use in osm?
 	 * If not official useable in osm, but geocoordinates are available, they will be stored and used for quality assurance, but not for osm import
 	 */
+//TODO these are two light different aspects and must be configured separately
 	private boolean officialgeocoordinates = false;
 	/**
 	 * defines, if housenumber additions must be exactly identical between officlal list and osm.
@@ -77,7 +78,7 @@ public class HousenumberList {
 	/**
 	 * internal Structure to hold all housenumber-Objects;
 	 */
-	private Map<String, ImportAddress> housenumbers = new HashMap<>();
+	private Map<String, ImportAddress> housenumbers = new HashMap<>(1000);
 
 		// storage of streetnames and their internal DB id. If a street is missing in DB, it will be inserted,
 		// before the insert of the housenumbers at the streets will be inserted
@@ -179,6 +180,14 @@ public class HousenumberList {
 		return housenumbers.get(key);
 	}
 
+	/**
+	 * get all housenumbers
+	 * @return list of all housenumbers as Map<String, ImportAddress>
+	 */
+	public Map<String, ImportAddress> getHousenumbers() {
+		return this.housenumbers;
+	}
+
 	public int countHousenumbers() {
 		return housenumbers.size();
 	}
@@ -216,6 +225,7 @@ public class HousenumberList {
 			System.out.println("Select-Anfrage ===" + selectMunicipalityStmt.toString() + "=== ...");
 
 //TODO add info, if postcode is available
+//TODO add finer configuration, if officialgeocoordinates allow directly osm upload
 			String insertMunicipalitySql = "INSERT INTO stadt (land_id, stadt, " +
 				"officialkeys_id, osm_hierarchy, " +
 				"subareasidentifyable, housenumberaddition_exactly, officialgeocoordinates, " +
@@ -224,6 +234,7 @@ public class HousenumberList {
 				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id;";
 			PreparedStatement insertMunicipalityStmt = housenumberConn.prepareStatement(insertMunicipalitySql);
 
+//TODO add finer configuration, if officialgeocoordinates allow directly osm upload
 			String updateMunicipalitySql = "UPDATE stadt SET " +
 				"sourcelist_url = ?, sourcelist_copyrighttext = ?, sourcelist_useagetext = ?, " +
 				"officialgeocoordinates = ?, " +
@@ -442,7 +453,11 @@ public class HousenumberList {
 	public String getCountrycode() {
 		return countrycode;
 	}
-	
+
+	public String getHierarchy() {
+		return this.hierarchy;
+	}
+
 	/**
 	 * @return the municipalityDBId
 	 */
@@ -505,6 +520,10 @@ public class HousenumberList {
 	 */
 	public void setCountrycode(String countrycode) {
 		this.countrycode = countrycode;
+	}
+
+	public void setHierarchy(String hierarchy) {
+		this.hierarchy = hierarchy;
 	}
 
 	/**

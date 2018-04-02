@@ -801,7 +801,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 			String insertJobStreetSql = "INSERT INTO jobs_strassen " +
 				"(job_id, land_id, stadt_id, strasse_id, osm_ids,linestring) " +
-				"VALUES (?, ?, ?, ?, ?, ?::geometry);";
+				"VALUES (?, ?, ?, ?, ?, ST_SetSrid(?::geometry,?));";
 			PreparedStatement insertJobStreetStmt = housenumberConn.prepareStatement(insertJobStreetSql);
 
 			String selectOfficialJobStreetsSql = "SELECT DISTINCT ON (strasse, strasse_id) " +
@@ -849,6 +849,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 				insertJobStreetStmt.setLong(stmtindex++, streetDBid);
 				insertJobStreetStmt.setString(stmtindex++, osmStreet.getOSMIdsAsString());
 				insertJobStreetStmt.setString(stmtindex++, osmStreet.getGeometryWKT());
+				insertJobStreetStmt.setInt(stmtindex++, 4326);
 				System.out.println("insert statement to store a street for a " +
 					"municipality area ===" + insertJobStreetStmt.toString() + "===");
 				try {

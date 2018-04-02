@@ -99,6 +99,10 @@ public class OSMStreet extends Street implements Comparable {
 //TODO add custom method to override this default setting of valid highway types
 	}
 
+	/**
+	 * Be sure, that the way has geometry in WGS84 (EPSG 4326) Coordinate system
+	 * @param way
+	 */
 	public void addSegment(OSMSegment way) {
 		segments.add(way);
 		this.geometryIsDirty = true;
