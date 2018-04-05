@@ -61,9 +61,9 @@ CREATE TABLE stadt
   sourcelist_contentdate          date,            -- date of the housenumber list, if told from delivery administration office
   sourcelist_filedate             date,            -- technical file date
   parameters                      hstore,          -- new 2016-02-18 add municipality specific parameters for evaluations as key-value pairs  
-                                                       -- listcoordosmuploadable=yes  official geocoordinates with license compatabile to osm odbl - 2016-02-18
-                                                       -- listcoordosmuploadlimitcount=n  upload to osm limited to n housenumbers - 2016-02-18
-                                                       -- listcoordforevaluation=yes  can officialcoordinates be used for evaluations (don't need to be ODbL-compatible)
+                                                       -- 'listcoordosmuploadable=>yes'  official geocoordinates with license compatabile to osm odbl - 2016-02-18
+                                                       -- 'listcoordosmuploadlimitcount=>n'  upload to osm limited to n housenumbers - 2016-02-18
+                                                       -- 'listcoordforevaluation=>yes'  can officialcoordinates be used for evaluations (don't need to be ODbL-compatible)
   CONSTRAINT pk_stadt PRIMARY KEY (id)
 )
 WITH (OIDS=FALSE);
