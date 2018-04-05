@@ -298,7 +298,7 @@ public class MunicipalityArea extends Municipality {
 			 * if(activeCountryPolygon != null)
 				osmadminrelationSql += " AND ST_Within(way, '" + activeCountryPolygon + "')";
 			*/
-			osmadminrelationSql += " ORDER BY osm_id;";
+			osmadminrelationSql += " ORDER BY tags->'admin_level', osm_id;";
 	
 			Statement osmadminrelationStmt = osmdbConn.createStatement();
 			System.out.println("Ausgabe osmadminrelationSql ===" + osmadminrelationSql + "===");
@@ -320,7 +320,8 @@ public class MunicipalityArea extends Municipality {
 					":  id===" + osmadminrelationRs.getString("id") + 
 					"===  name ===" + osmadminrelationRs.getString("name") + 
 					"===   gemeindeschluessel ===" + osmadminrelationRs.getString("gemeindeschluessel") +
-					"===  boundary ===" + osmadminrelationRs.getString("boundary") + "===");
+					"===  boundary ===" + osmadminrelationRs.getString("boundary") + "===" +
+					"===  admin_level: " + osmadminrelationRs.getString("admin_level"));
 				if(	(osmadminrelationRs.getString("name_prefix") != null) || 
 					(osmadminrelationRs.getString("name_suffix") != null)) {
 	//ToDo Prefix und Suffix ergänzen, um Objekt eindeutig zu identifizieren
@@ -344,6 +345,11 @@ public class MunicipalityArea extends Municipality {
 					// get admin_level from this boundary relation for later check, 
 					// if sub-boundaries have higher admin_level, if available
 				if(osmadminrelationRs.getInt("admin_level") != 0) {
+						// if actual record is not first one and actual admin_level is higher
+						// than already previously read, then ignore actual record
+					if ((municipality_adminlevel > 0) && 
+						(municipality_adminlevel < osmadminrelationRs.getInt("admin_level")))
+						continue;
 					municipality_adminlevel = osmadminrelationRs.getInt("admin_level");
 				}
 	
@@ -521,7 +527,10 @@ public class MunicipalityArea extends Municipality {
 				}
 			} // end over loop of all found relation-records (ends now earlier from 17.11.2011) - while( osmadminrelationRs.next() ) {
 
+				// ok, continue now after checking all DB records for municipality
 			
+			
+				// if no geometry available or an error occured ...
 			if (completePolygonWKB.equals("") || !relation_wrong.equals("")) {
 				System.out.println("Error with relation, ignored this municipality");
 				System.out.println("no boundary-geometry found for actual municipality, " +
@@ -532,6 +541,7 @@ public class MunicipalityArea extends Municipality {
 					// ok, abort actual municipality
 				generatedpolygonstate = false;
 			} else {
+					// ok, geometry found and no error occured ...
 				this.adminPolygonWKB = completePolygonWKB;
 //TODO store main area polygon in subarea-table and set a flag to identify its main state
 				this.adminPolygonOsmIdlist = completePolygonIdlist;
