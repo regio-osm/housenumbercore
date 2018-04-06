@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.regioosm.housenumbercore.MunicipalityArea;
@@ -178,15 +179,16 @@ public class UpdateMunicipalityArea {
 			try {
 				newarea = new MunicipalityArea(municipality);
 				System.out.println("Processing municipality " + municipality.toString() + "===");
-				if(newarea.generateMunicipalityPolygon(municipality, 0, true)) {
-					if(newarea.generateSuburbPolygons(municipality, true)) {
-						while( newarea != null ) {
-							System.out.println("Processing newarea: " + newarea.toString() + "===");
-							jobs.generateJob(newarea);
-							Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
-							jobs.storeStreets(newarea, osmstreets);
-							newarea = MunicipalityArea.next();
-						}   // loop over all found municipality areas
+				if((newarea = newarea.generateMunicipalityPolygon(municipality, 0, true)) != null) {
+					List<MunicipalityArea> subareas = newarea.generateSuburbPolygons(municipality, true);
+					if(subareas != null) {
+						for(int subareaindex = 0; subareaindex < subareas.size(); subareaindex++) {
+							MunicipalityArea subarea = subareas.get(subareaindex);
+							System.out.println("Processing subarea: " + subarea.toString() + "===");
+							jobs.generateJob(subarea);
+							Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(subarea);
+							jobs.storeStreets(subarea, osmstreets);
+						}
 					}
 				} else {
 					System.out.println("Administrative polygon couldn't be created for " +

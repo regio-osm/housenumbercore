@@ -146,6 +146,8 @@ public class OSMStreet extends Street implements Comparable {
 		}
 
 		String mergedways = this.segments.get(0).geometryWKT;
+		if(this.segments.size() > 50)
+			System.out.println("weg hat mehr als 80 Segmente !!!!");
 		for(int segmentindex = 1; segmentindex < this.segments.size(); segmentindex++) {
 			String actualway = this.segments.get(segmentindex).geometryWKT;
 			

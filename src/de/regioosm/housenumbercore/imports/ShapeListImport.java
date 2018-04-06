@@ -53,25 +53,23 @@ public class ShapeListImport {
 		DateFormat dateformatUS = new SimpleDateFormat("yyyy-MM-dd");
 
 		if ((args.length >= 1) && (args[0].equals("-h"))) {
-			System.out.println("-land 'Bundesrepublik Deutschland' wenn fehlend");
-			System.out.println("-stadt Stadtname");
-			System.out.println("-ags 8stelligeramtlicherGemeindeschlüssel z.B. 09761000");
-			System.out.println("-koordsystem srid z.B. 31468 für GK4");
-			System.out.println("-datei importdateiname");
-			System.out.println("-municipalityidfile filename with municipalty-id => municipality name, if in main -datei file is only municipality-id, not the municipality name itself: Column 1 has fix id, Column 2 has fix municipality name, file is UTF-8, text-format and tab-separated");
-			System.out.println("-submunicipalityidfile filename with SUBmunicipalty-id => SUBmunicipality name, if in main -datei file is only submunicipality-id, not the submunicipality name itself: Column 1 has fix municipality id, Column 2 has fix submunicipality id and Column 3 has fix submunicipality name. File is UTF-8, text-format and tab-separated");
-			System.out.println("-streetidfile filename with street-id => streetname, if in main -datei file is only street-id, not the street name itself: Column 1 has fix id, Column 2 has fix streetname, file is UTF-8, text-format and tab-separated");
-			System.out.println("-hausnummeradditionseparator zeichen");
-			System.out.println("-hausnummeradditionseparator2 zeichen");
-			System.out.println("-feldseparator zeichen");
-			System.out.println("-subgebieteaktiv ja|nein (default nein)");
-			System.out.println("-listurl  download hyperlink to housennumberlist");
-			System.out.println("-copyright copyright Text for housenumberlist");
-			System.out.println("-useage useage Text for the list");
-			System.out.println("-listcontenttimestamp Content Timestamp in date format YYYY-MM-DD");
-			System.out.println("-listfiletimestamp File Timestamp in date format YYYY-MM-DD");
-			System.out.println("-CoordinatesOSMImportable are Coordinates in import file free importable in OSM (license compatible)");
-			System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
+			System.out.println("-country name: local nation use of country name. if missing, default is 'Bundesrepublik Deutschland'");
+			System.out.println("-municipality name: municipality name, if single file for one municipality and its information is not in file");
+			System.out.println("-municipalityref xy: reference id for municipality. You must know, which reference within a country will be used. In Germany, it's amtlicher Gemeindeschluessel");
+			System.out.println("-coordinatesystem srid: epsg code within postgresql DB for source coordinate system, e.g. 31468 for Gauß Krueger 4");
+			System.out.println("-file importfilename");
+			System.out.println("-filecharset ISO-8859-1|UTF-8: Character set used in importfile, default is UTF-8");
+			System.out.println("-housenumberseparator character: one character or empty");
+			System.out.println("-housenumberseparator2 character: one character or empty");
+			System.out.println("-fieldseparator character: in importfile separator for fields, like colon, comma or tabulator");
+			System.out.println("-subareaactive yes|no (default no)");
+			System.out.println("-listurl url: download hyperlink to housennumberlist");
+			System.out.println("-copyright text: legal copyright Text for housenumberlist");
+			System.out.println("-useage text: legal (re)useage Text for the list");
+			System.out.println("-listcontenttimestamp YYYY-MM-DD: Content Timestamp");
+			System.out.println("-listfiletimestamp YYYY-MM-DD: technical File Timestamp, time of download");
+			System.out.println("-coordinatesosmimportable yes|no: are Coordinates in import file free importable in OSM (license compatible)");
+			System.out.println("-useoverpass  yes|no: should Osm Overpass used for getting data or local DB (default)");
 			System.out.println("");
 			System.out.println("Importfile must have commentline in line 1, starting with #");
 			System.out.println("columns need values in any order:   Stadt	Straße   Hausnummer    Hausnummerzusatz   Hausnummerzusatz2   Bemerkung   Subid   Laengengrad   Breitengrad");
@@ -86,11 +84,13 @@ public class ShapeListImport {
 
 		String fieldSeparator = "\t";
 
-		String parameterLand = "Bundesrepublik Deutschland";
-		String parameterStadt = "";
-		String parameterAgs = "";
-		String parameterQuellSrid = "";
-		String parameterImportdateiname = "";
+		String paramCountry = "Bundesrepublik Deutschland";
+		String paramMunicipality = "";
+		String paramMunicipalityRef = "";
+		boolean parameterUseOsmOverpass = false;
+		String paramSourceSrid = "";
+		String paramImportfileName = "";
+		String parameterImportfileCharset = "UTF-8";
 		boolean parameterSubareaActive = false;
 		String parameterHousenumberadditionseparator = "";
 		String parameterHousenumberadditionseparator2 = "-";
@@ -113,35 +113,51 @@ public class ShapeListImport {
 				}
 				System.out.println("");
 
-				if (args[argsi].equals("-land")) {
-					parameterLand = args[argsi + 1];
+				if (args[argsi].equals("-country")) {
+					paramCountry = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-stadt")) {
-					parameterStadt = args[argsi + 1];
+				} else if (args[argsi].equals("-municipality")) {
+					paramMunicipality = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-ags")) {
-					parameterAgs = args[argsi + 1];
+				} else if (args[argsi].equals("-municipalityref")) {
+					paramMunicipalityRef = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-koordsystem")) {
-					parameterQuellSrid = args[argsi + 1];
+				} else if (args[argsi].equals("-coordinatesystem")) {
+					paramSourceSrid = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-datei")) {
-					parameterImportdateiname = args[argsi + 1];
+				} else if (args[argsi].equals("-useoverpass")) {
+					if (!args[argsi + 1].equals("")) {
+						String yesno = args[argsi + 1].toLowerCase().substring(0,1);
+						if (yesno.equals("y") || yesno.equals("j")) {
+							parameterUseOsmOverpass = true;
+						} else {
+							parameterUseOsmOverpass = false;
+						}
+					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-hausnummeradditionseparator")) {
+				} else if (args[argsi].equals("-file")) {
+					paramImportfileName = args[argsi + 1];
+					argsOkCount += 2;
+				} else if (args[argsi].equals("-filecharset")) {
+					if (!args[argsi + 1].equals("")) {
+						if (args[argsi + 1].toUpperCase().equals("ISO-8859-1"))
+							parameterImportfileCharset = "ISO-8859-1";
+						else if (args[argsi + 1].toUpperCase().equals("UTF-8"))
+							parameterImportfileCharset = "UTF-8";
+						else {
+							System.out.println("Inputparameter -filecharset has invalid value '" + 
+								args[argsi + 1] + ". Only values 'ISO-8859-1' and 'UTF-8' are allowed");
+							return;
+						}
+					}
+					argsOkCount += 2;
+				} else if (args[argsi].equals("-housenumberseparator")) {
 					parameterHousenumberadditionseparator = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-hausnummeradditionseparator2")) {
+				} else if (args[argsi].equals("-housenumberseparator2")) {
 					parameterHousenumberadditionseparator2 = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-subgebieteaktiv")) {
+				} else if (args[argsi].equals("-subareaactive")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
 						parameterSubareaActive = true;
@@ -149,41 +165,34 @@ public class ShapeListImport {
 						parameterSubareaActive = false;
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-feldseparator")) {
+				} else if (args[argsi].equals("-fieldseparator")) {
 					fieldSeparator = args[argsi + 1];
-					System.out.println("Info: explizit Feldseparator aktiviert ===" + fieldSeparator + "===");
+					System.out.println("Info: explicit set field separator to '" + fieldSeparator + "'");
 					argsOkCount += 2;
-				}				
-				if (args[argsi].equals("-listurl")) {
+				} else if (args[argsi].equals("-listurl")) {
 					parameterSourcelistUrl = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-copyright")) {
+				} else if (args[argsi].equals("-copyright")) {
 					parameterSourcelistCopyright = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-useage")) {
+				} else if (args[argsi].equals("-useage")) {
 					parameterSourcelistUseage = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-listcontenttimestamp")) {
+				} else if (args[argsi].equals("-listcontenttimestamp")) {
 					try {
 						parameterSourcelistContentdate = dateformatUS.parse(args[argsi + 1]);
 					} catch (ParseException e) {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-listfiletimestamp")) {
+				} else if (args[argsi].equals("-listfiletimestamp")) {
 					try {
 						parameterSourcelistFiledate = dateformatUS.parse(args[argsi + 1]);
 					} catch (ParseException e) {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-CoordinatesOSMImportable")) {
+				} else if (args[argsi].equals("-coordinatesosmimportable")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
 						parameterOfficialgeocoordinates = true;
@@ -191,6 +200,8 @@ public class ShapeListImport {
 						parameterOfficialgeocoordinates = false;
 					}
 					argsOkCount += 2;
+				} else {
+					System.out.println("unknown program parameter '" + args[argsi] + "===");
 				}
 
 			}
@@ -214,7 +225,7 @@ public class ShapeListImport {
 
 			try {
 				Country.connectDB(housenumberConn);
-				if(Country.getCountryShortname(parameterLand).equals("")) {
+				if(Country.getCountryShortname(paramCountry).equals("")) {
 					System.out.println("Error: unknown country, please check if correct.");
 					return;
 				}
@@ -245,11 +256,11 @@ public class ShapeListImport {
 			Municipality.connectDB(housenumberConn);
 
 			try {
-				importparameter.setCountrycode(Country.getCountryShortname(parameterLand));
+				importparameter.setCountrycode(Country.getCountryShortname(paramCountry));
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.out.println("Can't get countrycode for input parameter '" +
-					parameterLand + " from DB, please check country name and repeat program.");
+					paramCountry + " from DB, please check country name and repeat program.");
 				return;
 			}
 
@@ -275,8 +286,8 @@ public class ShapeListImport {
 			}
 */			
 			importparameter.setSubareaActive(parameterSubareaActive);
-			importparameter.setSourceCoordinateSystem(parameterQuellSrid);
-			importparameter.setImportfile(parameterImportdateiname, Charset.forName("UTF-8"));		 //"ISO-8859-1"  "UTF-8"
+			importparameter.setSourceCoordinateSystem(paramSourceSrid);
+			importparameter.setImportfile(paramImportfileName, Charset.forName(parameterImportfileCharset));
 			importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
 				parameterHousenumberadditionseparator2);
 			importparameter.setHeaderfield(HEADERFIELD.municipalityref, "ISTAT");
@@ -289,6 +300,7 @@ public class ShapeListImport {
 
 			ShapeReader shapereader = new ShapeReader(importparameter);
 			Map<Municipality, HousenumberList> housenumberlists = shapereader.execute();
+
 			for (Map.Entry<Municipality, HousenumberList> listentry : housenumberlists.entrySet()) {
 				Municipality municipality = listentry.getKey();
 				HousenumberList housenumberlist = listentry.getValue();
@@ -336,19 +348,24 @@ public class ShapeListImport {
 
 				MunicipalityArea newarea = null;
 				MunicipalityJobs jobs = new MunicipalityJobs();
-				jobs.setOverpassForEvaluation(true);
+				jobs.setOverpassForEvaluation(parameterUseOsmOverpass);
 				try {
 					newarea = new MunicipalityArea(municipality);
 					System.out.println("Processing municipality " + municipality.toString() + "===");
-					if(newarea.generateMunicipalityPolygon(municipality, 0, true)) {
-						if(newarea.generateSuburbPolygons(municipality, true)) {
-							while( newarea != null ) {
-								System.out.println("Processing newarea: " + newarea.toString() + "===");
-								jobs.generateJob(newarea);
-								Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
-								jobs.storeStreets(newarea, osmstreets);
-								newarea = MunicipalityArea.next();
-							}   // loop over all found municipality areas
+					if((newarea = newarea.generateMunicipalityPolygon(municipality, 0, true)) != null) {
+						System.out.println("Processing newarea: " + newarea.toString() + "===");
+						jobs.generateJob(newarea);
+						Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
+						jobs.storeStreets(newarea, osmstreets);
+						List<MunicipalityArea> subareas = newarea.generateSuburbPolygons(municipality, true);
+						if(subareas != null) {
+							for(int subareaindex = 0; subareaindex < subareas.size(); subareaindex++) {
+								MunicipalityArea subarea = subareas.get(subareaindex);
+								System.out.println("Processing subarea: " + subarea.toString() + "===");
+								jobs.generateJob(subarea);
+								osmstreets = jobs.getOSMStreets(subarea);
+								jobs.storeStreets(subarea, osmstreets);
+							}
 						}
 					} else {
 						System.out.println("Administrative polygon couldn't be created for " +
