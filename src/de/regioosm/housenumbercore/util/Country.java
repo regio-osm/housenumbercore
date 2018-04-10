@@ -13,6 +13,10 @@ public class Country {
 	private static Map<String, String> countrylist = new HashMap<>();
 
 	public static void connectDB() {
+		
+		if (housenumberConn != null) 
+			return;
+
 		Applicationconfiguration configuration = new Applicationconfiguration();
 
 		try {

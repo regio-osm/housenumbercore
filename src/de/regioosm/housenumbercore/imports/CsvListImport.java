@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.regioosm.housenumbercore.MunicipalityArea;
@@ -65,8 +66,8 @@ public class CsvListImport {
 			System.out.println("-municipalityidfile filename:  with municipalty-id => municipality name, if in main -file file is only municipality-id, not the municipality name itself: Column 1 has fix id, Column 2 has fix municipality name, file is UTF-8, text-format and tab-separated");
 			System.out.println("-submunicipalityidfile filename:  with SUBmunicipalty-id => SUBmunicipality name, if in main -file file is only submunicipality-id, not the submunicipality name itself: Column 1 has fix municipality id, Column 2 has fix submunicipality id and Column 3 has fix submunicipality name. File is UTF-8, text-format and tab-separated");
 			System.out.println("-streetidfile filename:  with street-id => streetname, if in main -file file is only street-id, not the street name itself: Column 1 has fix id, Column 2 has fix streetname, file is UTF-8, text-format and tab-separated");
-			System.out.println("-hausnummeradditionseparator character: one character or empty");
-			System.out.println("-hausnummeradditionseparator2 character: one character or empty");
+			System.out.println("-housenumberseparator character: one character or empty");
+			System.out.println("-housenumberseparator2 character: one character or empty");
 			System.out.println("-fieldseparator character: in importfile separator for fields, like colon, comma or tabulator");
 			System.out.println("-subareaactive yes|no (default no)");
 			System.out.println("-listurl url: download hyperlink to housennumberlist");
@@ -74,7 +75,7 @@ public class CsvListImport {
 			System.out.println("-useage text: legal (re)useage Text for the list");
 			System.out.println("-listcontenttimestamp YYYY-MM-DD: Content Timestamp");
 			System.out.println("-listfiletimestamp YYYY-MM-DD: technical File Timestamp, time of download");
-			System.out.println("-coordinatesOSMImportable yes|no: are Coordinates in import file free importable in OSM (license compatible)");
+			System.out.println("-coordinatesosmimportable yes|no: are Coordinates in import file free importable in OSM (license compatible)");
 			System.out.println("-useoverpass  yes|no: should Osm Overpass used for getting data or local DB (default)");
 			//System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
 			System.out.println("");
@@ -91,12 +92,12 @@ public class CsvListImport {
 
 		String fieldSeparator = "\t";
 
-		String parameterLand = "Bundesrepublik Deutschland";
-		String parameterStadt = "";
-		String parameterAgs = "";
+		String paramCountry = "Bundesrepublik Deutschland";
+		String paramMunicipality = "";
+		String paramMunicipalityRef = "";
 		boolean parameterUseOsmOverpass = false;
-		String parameterQuellSrid = "";
-		String parameterImportdateiname = "";
+		String paramSourceSrid = "";
+		String paramImportfileName = "";
 		String parameterImportfileCharset = "UTF-8";
 		String parameterMunicipalityIdListfilename = "";
 		String parameterSubMunicipalityIdListfilename = "";
@@ -126,22 +127,18 @@ public class CsvListImport {
 				System.out.println("");
 
 				if (args[argsi].equals("-country")) {
-					parameterLand = args[argsi + 1];
+					paramCountry = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-municipality")) {
-					parameterStadt = args[argsi + 1];
+				} else if (args[argsi].equals("-municipality")) {
+					paramMunicipality = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-municipalityref")) {
-					parameterAgs = args[argsi + 1];
+				} else if (args[argsi].equals("-municipalityref")) {
+					paramMunicipalityRef = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-coordinatesystem")) {
-					parameterQuellSrid = args[argsi + 1];
+				} else if (args[argsi].equals("-coordinatesystem")) {
+					paramSourceSrid = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-useoverpass")) {
+				} else if (args[argsi].equals("-useoverpass")) {
 					if (!args[argsi + 1].equals("")) {
 						String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 						if (yesno.equals("y") || yesno.equals("j")) {
@@ -151,12 +148,10 @@ public class CsvListImport {
 						}
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-file")) {
-					parameterImportdateiname = args[argsi + 1];
+				} else if (args[argsi].equals("-file")) {
+					paramImportfileName = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-filecharset")) {
+				} else if (args[argsi].equals("-filecharset")) {
 					if (!args[argsi + 1].equals("")) {
 						if (args[argsi + 1].toUpperCase().equals("ISO-8859-1"))
 							parameterImportfileCharset = "ISO-8859-1";
@@ -169,29 +164,22 @@ public class CsvListImport {
 						}
 					}
 					argsOkCount += 2;
-				}
-
-				if (args[argsi].equals("-municipalityidfile")) {
+				} else if (args[argsi].equals("-municipalityidfile")) {
 					parameterMunicipalityIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-submunicipalityidfile")) {
+				} else if (args[argsi].equals("-submunicipalityidfile")) {
 					parameterSubMunicipalityIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-streetidfile")) {
+				} else if (args[argsi].equals("-streetidfile")) {
 					parameterStreetIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-hausnummeradditionseparator")) {
+				} else if (args[argsi].equals("-housenumberseparator")) {
 					parameterHousenumberadditionseparator = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-hausnummeradditionseparator2")) {
+				} else if (args[argsi].equals("-housenumberseparator2")) {
 					parameterHousenumberadditionseparator2 = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-subareaactive")) {
+				} else if (args[argsi].equals("-subareaactive")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
 						parameterSubareaActive = true;
@@ -199,41 +187,34 @@ public class CsvListImport {
 						parameterSubareaActive = false;
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-fieldseparator")) {
+				} else if (args[argsi].equals("-fieldseparator")) {
 					fieldSeparator = args[argsi + 1];
-					System.out.println("Info: explizit Feldseparator aktiviert ===" + fieldSeparator + "===");
+					System.out.println("Info: explicit set field separator to '" + fieldSeparator + "'");
 					argsOkCount += 2;
-				}				
-				if (args[argsi].equals("-listurl")) {
+				} else if (args[argsi].equals("-listurl")) {
 					parameterSourcelistUrl = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-copyright")) {
+				} else if (args[argsi].equals("-copyright")) {
 					parameterSourcelistCopyright = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-useage")) {
+				} else if (args[argsi].equals("-useage")) {
 					parameterSourcelistUseage = args[argsi + 1];
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-listcontenttimestamp")) {
+				} else if (args[argsi].equals("-listcontenttimestamp")) {
 					try {
 						parameterSourcelistContentdate = dateformatUS.parse(args[argsi + 1]);
 					} catch (ParseException e) {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-listfiletimestamp")) {
+				} else if (args[argsi].equals("-listfiletimestamp")) {
 					try {
 						parameterSourcelistFiledate = dateformatUS.parse(args[argsi + 1]);
 					} catch (ParseException e) {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
-				}
-				if (args[argsi].equals("-coordinatesOSMImportable")) {
+				} else if (args[argsi].equals("-coordinatesosmimportable")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
 						parameterOfficialgeocoordinates = true;
@@ -241,8 +222,9 @@ public class CsvListImport {
 						parameterOfficialgeocoordinates = false;
 					}
 					argsOkCount += 2;
+				} else {
+					System.out.println("unknown program parameter '" + args[argsi] + "===");
 				}
-
 			}
 			if (argsOkCount != args.length) {
 				System.out.println("ERROR: not all programm parameters were valid, STOP");
@@ -264,7 +246,7 @@ public class CsvListImport {
 
 			try {
 				Country.connectDB(housenumberConn);
-				if(Country.getCountryShortname(parameterLand).equals("")) {
+				if(Country.getCountryShortname(paramCountry).equals("")) {
 					System.out.println("Error: unknown country, please check if correct.");
 					return;
 				}
@@ -358,18 +340,18 @@ public class CsvListImport {
 				Municipality.connectDB(housenumberConn);
 
 				try {
-					importparameter.setCountrycode(Country.getCountryShortname(parameterLand));
+					importparameter.setCountrycode(Country.getCountryShortname(paramCountry));
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.out.println("Can't get countrycode for input parameter '" +
-						parameterLand + " from DB, please check country name and repeat program.");
+						paramCountry + " from DB, please check country name and repeat program.");
 					return;
 				}
-				//Switzerland: nationwide: -country "Schweiz" -coordinatesystem 2056 -hausnummeradditionseparator "" -subareaactive "n" -file /home/osm/apps/housenumbercore/data/Schweiz/CH-20180325-1253.csv -listurl "https://a.b.c/de.txt" -copyright "Copyright Text xyz" -useage "Nutzungsvereinbarung xy" -listcontenttimestamp 2018-03-01 -listfiletimestamp 2018-03-15 -coordinatesOSMImportable no -filecharset "UTF-8" -useoverpass yes
-				//Switzerland Kanton Basel-Stadt: -land "Schweiz" -koordsystem 2056 -hausnummeradditionseparator "" -subgebieteaktiv "n" -datei /home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Schweiz/Basel-Stadt/2018/DM_Datenmarkt/Datenmarkt.csv -listurl "https://basel.txt" -copyright "Copyright basel" -useage "Nutzungsvereinbarung basel" -listcontenttimestamp 2018-03-31 -listfiletimestamp 2018-04-01 -CoordinatesOSMImportable yes
+				//Switzerland: nationwide: -country "Schweiz" -coordinatesystem 2056 -housenumberSeparator "" -subareaactive "n" -file /home/osm/apps/housenumbercore/data/Schweiz/CH-20180325-1253.csv -listurl "https://a.b.c/de.txt" -copyright "Copyright Text xyz" -useage "Nutzungsvereinbarung xy" -listcontenttimestamp 2018-03-01 -listfiletimestamp 2018-03-15 -coordinatesOSMImportable no -filecharset "UTF-8" -useoverpass yes
+				//Switzerland Kanton Basel-Stadt: -land "Schweiz" -koordsystem 2056 -housenumberSeparator "" -subgebieteaktiv "n" -datei /home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Schweiz/Basel-Stadt/2018/DM_Datenmarkt/Datenmarkt.csv -listurl "https://basel.txt" -copyright "Copyright basel" -useage "Nutzungsvereinbarung basel" -listcontenttimestamp 2018-03-31 -listfiletimestamp 2018-04-01 -CoordinatesOSMImportable yes
 				importparameter.setSubareaActive(parameterSubareaActive);
-				importparameter.setSourceCoordinateSystem(parameterQuellSrid);
-				importparameter.setImportfile(parameterImportdateiname, Charset.forName(parameterImportfileCharset));
+				importparameter.setSourceCoordinateSystem(paramSourceSrid);
+				importparameter.setImportfile(paramImportfileName, Charset.forName(parameterImportfileCharset));
 				importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
 				importparameter.setHeaderfield(HEADERFIELD.municipalityref, 3);
@@ -456,15 +438,20 @@ public class CsvListImport {
 					try {
 						newarea = new MunicipalityArea(municipality);
 						System.out.println("Processing municipality " + municipality.toString() + "===");
-						if(newarea.generateMunicipalityPolygon(municipality, 0, true)) {
-							if(newarea.generateSuburbPolygons(municipality, true)) {
-								while( newarea != null ) {
-									System.out.println("Processing newarea: " + newarea.toString() + "===");
-									jobs.generateJob(newarea);
-									Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
-									jobs.storeStreets(newarea, osmstreets);
-									newarea = MunicipalityArea.next();
-								}   // loop over all found municipality areas
+						if((newarea = newarea.generateMunicipalityPolygon(municipality, 0, true)) != null) {
+							System.out.println("Processing newarea: " + newarea.toString() + "===");
+							jobs.generateJob(newarea);
+							Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
+							jobs.storeStreets(newarea, osmstreets);
+							List<MunicipalityArea> subareas = newarea.generateSuburbPolygons(municipality, true);
+							if(subareas != null) {
+								for(int subareaindex = 0; subareaindex < subareas.size(); subareaindex++) {
+									MunicipalityArea subarea = subareas.get(subareaindex);
+									System.out.println("Processing subarea: " + subarea.toString() + "===");
+									jobs.generateJob(subarea);
+									osmstreets = jobs.getOSMStreets(subarea);
+									jobs.storeStreets(subarea, osmstreets);
+								}
 							}
 						} else {
 							System.out.println("Administrative polygon couldn't be created for " +

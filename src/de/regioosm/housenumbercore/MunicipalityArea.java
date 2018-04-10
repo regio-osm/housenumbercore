@@ -246,8 +246,14 @@ public class MunicipalityArea extends Municipality {
 	 * @param storeInDB
 	 * @return
 	 */
-	public boolean generateMunicipalityPolygon(Municipality municipality, int adminLevel, boolean storeInDB) {
-		boolean generatedpolygonstate = false;
+	public MunicipalityArea generateMunicipalityPolygon(Municipality municipality, int adminLevel, boolean storeInDB) {
+		MunicipalityArea muniarea = null;
+		try {
+			muniarea = new MunicipalityArea(municipality);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		String actual_polygon_part = "";
 		String completePolygonWKB = "";
@@ -539,16 +545,15 @@ public class MunicipalityArea extends Municipality {
 				this.adminPolygonOsmIdlist = null;
 				this.adminPolygonOsmId = 0L;
 					// ok, abort actual municipality
-				generatedpolygonstate = false;
+				muniarea = null;
 			} else {
 					// ok, geometry found and no error occured ...
 				this.adminPolygonWKB = completePolygonWKB;
 //TODO store main area polygon in subarea-table and set a flag to identify its main state
 				this.adminPolygonOsmIdlist = completePolygonIdlist;
 				this.adminPolygonOsmId = polygon_id;
-				generatedpolygonstate = true;
 				if(storeInDB) {
-					String selectSubareaSql = "SELECT id, name FROM gebiete WHERE"
+					String selectSubareaSql = "SELECT id, name, sub_id FROM gebiete WHERE"
 						+ " name = ? AND stadt_id = ? AND admin_level = ?;";
 					PreparedStatement selectSubareaStmt = housenumberConn.prepareStatement(selectSubareaSql);
 					int stmtindex = 1;
@@ -563,7 +568,8 @@ public class MunicipalityArea extends Municipality {
 						this.name = selectSuburbRs.getString("name");
 						System.out.println("ok, main area already found in DB, Name ===" + 
 							selectSuburbRs.getString("name") + "===, will be updated");
-		
+
+
 						String updateSuburbSql = "UPDATE gebiete SET " +
 								"osm_id = ?, polygon = ?::geometry, sub_id = ?, checkedtime = now() " +
 								"WHERE id = ?;";
@@ -578,6 +584,15 @@ public class MunicipalityArea extends Municipality {
 						try {
 							updateSuburbStmt.executeUpdate();
 							System.out.println("Info: successfully updated area in database");
+	
+								// set parameters from existing subarea object to result structure
+							muniarea.name = selectSuburbRs.getString("name");
+							muniarea.subid = selectSuburbRs.getString("sub_id");
+							muniarea.adminlevel = -1;
+							muniarea.subareasidentifyable = municipality.isSubareasidentifyable();
+							muniarea.muniareaDBId = selectSuburbRs.getLong("id");
+							muniarea.adminPolygonWKB = adminPolygonWKB;
+							muniarea.adminPolygonOsmId = adminPolygonOsmId;
 						}
 						catch( SQLException errorupdate) {
 							System.out.println("Error occured during try of update gebiete record with stadt.id ===" +
@@ -606,6 +621,16 @@ public class MunicipalityArea extends Municipality {
 								this.muniareaDBId = insertSuburbRS.getLong("id");
 								this.name = municipality.getName();
 								System.out.println(" return id from new job ===" + muniareaDBId + "===");
+
+								// set parameters from new subarea object to result structure
+								muniarea.name = municipality.getName();
+								muniarea.subid = "-1";
+								muniarea.adminlevel = municipality_adminlevel;
+								muniarea.subareasidentifyable = municipality.isSubareasidentifyable();
+								muniarea.muniareaDBId = insertSuburbRS.getLong("id");
+								muniarea.adminPolygonWKB = this.adminPolygonWKB;
+								muniarea.adminPolygonOsmId = this.adminPolygonOsmId;
+							
 							} else {
 								System.out.println("FEHLER FEHLER: nach Area-insert konnte Area-id nicht geholt werden");
 							}
@@ -622,10 +647,10 @@ public class MunicipalityArea extends Municipality {
 		catch (SQLException sqle) {
 			//TODO fill out
 			sqle.printStackTrace();
-			return false;
+			return null;
 		}
-
-		return generatedpolygonstate;
+		
+		return muniarea;
 	}
 
 
@@ -634,8 +659,10 @@ public class MunicipalityArea extends Municipality {
 	 * @param storeInDB	defines, that the found and valid suburb polygon should be stored in DB (should be default true)
 	 * @return
 	 */
-	public boolean generateSuburbPolygons(Municipality municipality, boolean storeInDB) {	
-			// TODO inactive variable: should be stored in a helper DB table to identify reason for not-usable admin polygon
+	public List<MunicipalityArea> generateSuburbPolygons(Municipality municipality, boolean storeInDB) {
+		List<MunicipalityArea> subareas = new ArrayList<MunicipalityArea>();
+
+		// TODO inactive variable: should be stored in a helper DB table to identify reason for not-usable admin polygon
 		String relation_wrong = "";
 		Integer municipality_adminlevel = 0;
 
@@ -671,7 +698,7 @@ public class MunicipalityArea extends Municipality {
 			System.out.println(" (cont.) here original stack ==="+e.toString()+"===");
 			e.printStackTrace();
 			relation_wrong = "invalid-geometry";
-			return false;
+			return null;
 		}
 		
 		try {
@@ -884,6 +911,24 @@ public class MunicipalityArea extends Municipality {
 					try {
 						updateSuburbStmt.executeUpdate();
 						System.out.println("Info: successfully updated area in database");
+
+							// set parameters from existing subarea object to result structure
+						MunicipalityArea newsubarea = null;
+						try {
+							newsubarea = new MunicipalityArea(municipality);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						newsubarea.name = subadminrelationRs.getString("name");
+						newsubarea.subid = sub_id;
+						newsubarea.adminlevel = subadminrelationRs.getInt("admin_level");
+						newsubarea.subareasidentifyable = municipality.isSubareasidentifyable();
+						newsubarea.muniareaDBId = selectSuburbRs.getLong("id");
+						newsubarea.adminPolygonWKB = actualSubareaPolygonsWKB;
+						newsubarea.adminPolygonOsmId = subadminrelationRs.getLong("id");
+						subareas.add(newsubarea);
+					
 					}
 					catch( SQLException errorupdate) {
 						System.out.println("Error occured during try of update gebiete record with stadt.id ===" +
@@ -910,6 +955,24 @@ public class MunicipalityArea extends Municipality {
 						ResultSet insertSuburbRS = insertSuburbStmt.executeQuery();
 						if( insertSuburbRS.next() ) {
 							System.out.println(" return id from new job ===" + muniareaDBId + "===");
+
+							// set parameters from new subarea object to result structure
+							MunicipalityArea newsubarea = null;
+							try {
+								newsubarea = new MunicipalityArea(municipality);
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							newsubarea.name = subadminrelationRs.getString("name");
+							newsubarea.subid = sub_id;
+							newsubarea.adminlevel = subadminrelationRs.getInt("admin_level");
+							newsubarea.subareasidentifyable = municipality.isSubareasidentifyable();
+							newsubarea.muniareaDBId = insertSuburbRS.getLong("id");
+							newsubarea.adminPolygonWKB = actualSubareaPolygonsWKB;
+							newsubarea.adminPolygonOsmId = subadminrelationRs.getLong("id");
+							subareas.add(newsubarea);
+						
 						} else {
 							System.out.println("FEHLER FEHLER: nach Area-insert konnte Area-id nicht geholt werden");
 						}
@@ -928,9 +991,9 @@ public class MunicipalityArea extends Municipality {
 		catch( SQLException e) {
 			//TODO fill out
 			e.printStackTrace();
-			return false;
+			return null;
 		}
-		return true;
+		return subareas;
 	}
 
 	@Override
@@ -1037,11 +1100,12 @@ public class MunicipalityArea extends Municipality {
 				try {
 					newarea = new MunicipalityArea(municipality);
 					System.out.println("Processing municipality " + municipality.toString() + "===");
-					if(!newarea.generateMunicipalityPolygon(municipality, 0, true)) {
+					if((newarea = newarea.generateMunicipalityPolygon(municipality, 0, true)) == null) {
 						//TODO display error, generating Admin polygon for municipality
 						continue;
 					}
-					if(!newarea.generateSuburbPolygons(municipality, true)) {
+					List<MunicipalityArea> newareas = newarea.generateSuburbPolygons(municipality, true);
+					if(newareas == null) {
 						//TODO display error, generating suburb polygons for municipality
 					}
 				} catch (Exception e) {

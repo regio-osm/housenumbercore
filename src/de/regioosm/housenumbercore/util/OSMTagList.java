@@ -22,4 +22,12 @@ public class OSMTagList {
 		OSMTag tag = new OSMTag(key, value);
 		this.tags.add(tag);
 	}
+	
+	public List<OSMTag> getTags() {
+		return tags;
+	}
+	
+	public int size() {
+		return tags.size();
+	}
 }

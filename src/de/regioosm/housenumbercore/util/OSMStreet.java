@@ -94,6 +94,7 @@ public class OSMStreet extends Street implements Comparable {
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "unclassified")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "residential")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "living_street")));
+		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "pedestrian")));		// new at 2018-04-08
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "service")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "track")));
 //TODO add custom method to override this default setting of valid highway types
@@ -146,6 +147,8 @@ public class OSMStreet extends Street implements Comparable {
 		}
 
 		String mergedways = this.segments.get(0).geometryWKT;
+		if(this.segments.size() > 50)
+			System.out.println("weg hat mehr als 80 Segmente !!!!");
 		for(int segmentindex = 1; segmentindex < this.segments.size(); segmentindex++) {
 			String actualway = this.segments.get(segmentindex).geometryWKT;
 			

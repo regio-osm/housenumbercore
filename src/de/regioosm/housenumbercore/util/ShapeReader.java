@@ -184,13 +184,18 @@ public class ShapeReader {
 		//List<SimpleFeature> filteredAddresses = new ArrayList<>();
 		try {
 			String typeName = this.dataStore.getTypeNames()[0];
-			FeatureSource<SimpleFeatureType, SimpleFeature> source = this.dataStore.getFeatureSource(typeName);
+			//FeatureSource<SimpleFeatureType, SimpleFeature> source = this.dataStore.getFeatureSource(typeName);
+			FeatureSource source = this.dataStore.getFeatureSource(typeName);
 			
 			FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
 Date vorher = new Date();
 			//Filter filter = Filter.INCLUDE;	// 13.9 Mio (13903309)
-			Filter filter = ff.and(ff.less(ff.property("ISTAT"), ff.literal("06000000")),
-				ff.notEqual(ff.property("COMUNE"), ff.literal(""))) ;	// 4.15 mio netto (3981177), brutto(4149410)
+
+			//Filter filter = ff.and(ff.equals(ff.property("REGIONE"), ff.literal("")),
+			//	ff.notEqual(ff.property("COMUNE"), ff.literal(""))) ;	// 4.15 mio netto (3981177), brutto(4149410)
+//Filter filter = ff.equals(ff.property("COMUNE"), ff.literal("MILANO"));
+			//Filter filter = ff.and(ff.less(ff.property("ISTAT"), ff.literal("06000000")),
+			//	ff.notEqual(ff.property("COMUNE"), ff.literal(""))) ;	// 4.15 mio netto (3981177), brutto(4149410)
 			//Filter filter = ff.and(ff.between(ff.property("ISTAT"), ff.literal("06000000"), ff.literal("11999999")),
 			//	ff.notEqual(ff.property("COMUNE"), ff.literal(""))) ;	// 3.8 mio netto (3798529), = brutto
 			//Filter filter = ff.and(ff.between(ff.property("ISTAT"), ff.literal("12000000"), ff.literal("17999999")),
@@ -198,7 +203,8 @@ Date vorher = new Date();
 			//Filter filter = ff.and(ff.greaterOrEqual(ff.property("ISTAT"), ff.literal("18000000")),
 			//	ff.notEqual(ff.property("COMUNE"), ff.literal(""))) ;	// 2.4 mio netto (2360156), = brutto
 
-			FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures(filter);
+			//FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures(filter);
+FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures();
 System.out.println("Number Records in Collection: " + collection.size());
 Date nachher = new Date();
 System.out.println("Dauer in sek: " + (nachher.getTime() - vorher.getTime())/1000);
@@ -241,6 +247,9 @@ System.out.println("Dauer in sek: " + (nachher.getTime() - vorher.getTime())/100
         while (addressRecords.hasNext()) {
         	looper++;
             addressFeature = addressRecords.next();
+if(!getFieldContent(addressFeature, HEADERFIELD.municipality).equals("MILANO"))
+	continue;
+            
 Date nachher = new Date();
 if ((looper > 5) || ((nachher.getTime() - vorher.getTime())/1000 > 5))
 	System.out.println("Dauer in sek: " + (nachher.getTime() - vorher.getTime())/1000 + "   anzahl: " + looper);
@@ -302,7 +311,8 @@ if ((looper > 5) || ((nachher.getTime() - vorher.getTime())/1000 > 5))
 
 			address.setNote(getFieldContent(addressFeature, HEADERFIELD.note));
 
-			address.setSubArea(getFieldContent(addressFeature, HEADERFIELD.subarea));
+			if(!importparameter.getHeaderfieldColumn(HEADERFIELD.subarea).equals(""))
+				address.setSubArea(getFieldContent(addressFeature, HEADERFIELD.subarea));
 
 			if(	(!importparameter.getHeaderfieldColumn(HEADERFIELD.subareaid).equals("")) &&
 				(importparameter.getSubareaMunicipalityIDListEntry(getFieldContent(addressFeature, HEADERFIELD.subareaid)) != null)) {
@@ -369,6 +379,7 @@ if ((looper > 5) || ((nachher.getTime() - vorher.getTime())/1000 > 5))
 
 	/**
 	 * read complete input file containing house numbers for one or many municipalities.
+	 * Please notify, that flag in municipality, if subareas are identifyable, could be set inside this method, depending on if input file contains a subarea column
 	 * @return house numbers and possible municipality data in an array of municipalities with its house numbers
 	 */
 	public Map<Municipality, HousenumberList> execute() {
@@ -391,6 +402,8 @@ if ((looper > 5) || ((nachher.getTime() - vorher.getTime())/1000 > 5))
 				}
 				Municipality municipality = new Municipality(address.getCountrycode(), 
 					address.getMunicipality(), address.getMunicipalityRef());
+				if (!address.getSubArea().equals(Address.subareaUnset))
+					municipality.setSubareasidentifyable(true);
 				HousenumberList housenumberlist = null;
 				if(lists.containsKey(municipality))
 					housenumberlist = lists.get(municipality);

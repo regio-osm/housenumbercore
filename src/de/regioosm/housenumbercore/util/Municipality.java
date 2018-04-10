@@ -337,6 +337,14 @@ public class Municipality implements Comparable<Municipality> {
 		this.countryDBId = countryid;
 	}
 
+	/**
+	 * set flag for municipality, that subarea of municipality is identifyable (if parameter is set to true)
+	 * @param subareaidentifyable
+	 */
+	public void setSubareasidentifyable(boolean subareaidentifyable) {
+		this.subareasidentifyable = subareaidentifyable;
+	}
+	
 	public Municipality loadFromDB() throws Exception {
 		Municipality result = null;
 		
@@ -520,5 +528,4 @@ public class Municipality implements Comparable<Municipality> {
 
 		return EQUAL;
 	}
-
 }

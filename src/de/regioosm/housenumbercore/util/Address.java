@@ -34,12 +34,13 @@ public class Address {
 	
 	public static final double lonUnset = 999.0D;
 	public static final double latUnset = 999.0D;
+	public static final String subareaUnset = "-1";
 
 	
 	protected String	countrycode = null;
 	protected String	country = null;
 	protected String	municipality = null;
-	protected String	subArea = null;
+	protected String	subArea = subareaUnset;
 	protected String	subareaId = null;
 	protected String	street = null;
 	protected String	place = null;					// in cases, the housenumber belongs not to a streets, but instead to a place, like in hamlets and very small villages
@@ -133,14 +134,14 @@ public class Address {
 	}
 
 	/**
-	 * @return the municipality
+	 * @return the sub area name with in the muncipality, if available (otherwise "-1")
 	 */
 	public String getSubArea() {
 		return subArea;
 	}
 
 	/**
-	 * @return the subarea ID
+	 * @return a technical subarea ID, if a subarea is only indirectly available via a ref to an external source with the subarea, identified by this id
 	 */
 	public String getSubareaId() {
 		return subareaId;

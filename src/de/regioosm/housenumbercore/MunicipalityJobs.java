@@ -267,6 +267,7 @@ public class MunicipalityJobs {
 		Map<Street, OSMStreet> streets = new TreeMap<>();
 
 		String gebietsgeometrie = muniarea.getAreaPolygonAsWKB();
+		System.out.println("in getOSMStreetsFromDB gebietsgeometrie ===" + gebietsgeometrie + "===");
 
 //TODO better let is use externally from Code User and bring it as second parameter 
 // to this method
@@ -318,9 +319,10 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 		try {
 			OSMStreet actualOSMStreet = null;
+			int countstreetsegments = 0;
 				// loop over all osm ways in municipality area
 			while( selectStreetGeometriesRS.next() ) {
-	
+					
 					// if actual osm-way has been marked as to ignore (by a user in website), 
 					// then ignore it really (doubled named ways, for example, in allotments) 
 				if(ignoreStreetsBlacklist.contains(selectStreetGeometriesRS.getLong("osmid"))) {
@@ -337,9 +339,10 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	
 				actualOSMStreet = new OSMStreet(muniarea, selectStreetGeometriesRS.getString("streetname"));
 				actualOSMStreet.setName(actualOSMStreet.normalizeName());
-	
-				
-				System.out.println("* "+selectStreetGeometriesRS.getString("osmid") + 
+				if (selectStreetGeometriesRS.getString("streetname").equals("Alzaia Naviglio Pavese"))
+					System.out.println("debug strasse gefunden in subarea " + muniarea.getName());
+				countstreetsegments++;
+				System.out.println("#" + countstreetsegments + " ** "+selectStreetGeometriesRS.getString("osmid") + 
 					"===  Orig-DB-Straße ===" + selectStreetGeometriesRS.getString("streetname") +
 					"===, normalisiert ===" + actualOSMStreet.getName() + "===");
 
@@ -792,6 +795,9 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	public void storeStreets(MunicipalityArea muniarea, Map<Street, OSMStreet> streets) {
 		List<Long> streetDBIdList = new ArrayList<>();
 
+		if ((streets == null) || (streets.size() == 0))
+			return;
+		
 		try {
 			String selectStreetSql = "SELECT id  FROM strasse WHERE strasse = ?";
 			PreparedStatement selectStreetStmt = housenumberConn.prepareStatement(selectStreetSql);
@@ -801,7 +807,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 			String insertJobStreetSql = "INSERT INTO jobs_strassen " +
 				"(job_id, land_id, stadt_id, strasse_id, osm_ids,linestring) " +
-				"VALUES (?, ?, ?, ?, ?, ST_SetSrid(?::geometry,?));";
+				"VALUES (?, (SELECT id FROM land WHERE countrycode = ?), ?, ?, ?, ST_SetSrid(?::geometry,?));";
 			PreparedStatement insertJobStreetStmt = housenumberConn.prepareStatement(insertJobStreetSql);
 
 			String selectOfficialJobStreetsSql = "SELECT DISTINCT ON (strasse, strasse_id) " +
@@ -809,7 +815,6 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 				"FROM stadt_hausnummern JOIN strasse ON strasse_id = strasse.id " +
 				"WHERE " +
 				"sub_id like ? AND " +
-				"land_id = ? AND " +
 				"stadt_id = ? " +
 				"ORDER BY strasse;";
 			PreparedStatement selectOfficialJobStreetsStmt = housenumberConn.prepareStatement(selectOfficialJobStreetsSql);
@@ -844,7 +849,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 				int stmtindex = 1;
 				insertJobStreetStmt.setLong(stmtindex++, jobDBId);
-				insertJobStreetStmt.setLong(stmtindex++, muniarea.getCountryDBId());
+				insertJobStreetStmt.setString(stmtindex++, muniarea.getCountrycode());
 				insertJobStreetStmt.setLong(stmtindex++, muniarea.getMunicipalityDBId());
 				insertJobStreetStmt.setLong(stmtindex++, streetDBid);
 				insertJobStreetStmt.setString(stmtindex++, osmStreet.getOSMIdsAsString());
@@ -883,7 +888,6 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	
 			int stmtindex = 1;
 			selectOfficialJobStreetsStmt.setString(stmtindex++, areaId);
-			selectOfficialJobStreetsStmt.setLong(stmtindex++, muniarea.getCountryDBId());
 			selectOfficialJobStreetsStmt.setLong(stmtindex++, muniarea.getMunicipalityDBId());
 			System.out.println("select all official streets for municipality area ===" +
 				selectOfficialJobStreetsStmt.toString() + "===");
@@ -897,7 +901,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 					stmtindex = 1;
 					insertJobStreetStmt.setLong(stmtindex++, jobDBId);
-					insertJobStreetStmt.setLong(stmtindex++, muniarea.getCountryDBId());
+					insertJobStreetStmt.setString(stmtindex++, muniarea.getCountrycode());
 					insertJobStreetStmt.setLong(stmtindex++, muniarea.getMunicipalityDBId());
 					insertJobStreetStmt.setLong(stmtindex++, streetDBid);
 					insertJobStreetStmt.setString(stmtindex++, null);
