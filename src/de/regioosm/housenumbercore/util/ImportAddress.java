@@ -11,6 +11,7 @@ public class ImportAddress extends Address {
 	protected String note = null;
 	private Long streetDBId = 0L;
 
+	public OSMTagList osmtags = new OSMTagList();
 	
 	public ImportAddress() {
 		super();

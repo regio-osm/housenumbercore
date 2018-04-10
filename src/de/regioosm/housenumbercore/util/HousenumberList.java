@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
@@ -242,18 +243,18 @@ public class HousenumberList {
 				"WHERE id = ?;";
 			PreparedStatement updateMunicipalityStmt = housenumberConn.prepareStatement(updateMunicipalitySql);
 			
-			String insertHousenumberWithGeometrySql = "INSERT into stadt_hausnummern(land_id, stadt_id, strasse_id,"
-				+ " postcode, hausnummer, hausnummer_sortierbar, sub_id, hausnummer_bemerkung,"
-				+ " point, pointsource)"
-				+ " VALUES(?, ?, ?,"
-				+ " ?, ?, ?, ?, ?,"
-				+ " ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326), ?);";
+			String insertHousenumberWithGeometrySql = "INSERT into stadt_hausnummern(land_id, stadt_id, strasse_id, " +
+				"postcode, hausnummer, hausnummer_sortierbar, sub_id, hausnummer_bemerkung, extraosmtags, " +
+				"point, pointsource) " +
+				"VALUES(?, ?, ?, " +
+				"?, ?, ?, ?, ?, ?::hstore, " +
+				"ST_Transform(ST_Setsrid(ST_Makepoint(?, ?), ?), 4326), ?);";
 			PreparedStatement insertHnoWithGeomStmt = housenumberConn.prepareStatement(insertHousenumberWithGeometrySql);
 
-			String insertHousenumberWithoutGeometrySql = "INSERT into stadt_hausnummern(land_id, stadt_id, strasse_id,"
-					+ " postcode, hausnummer, hausnummer_sortierbar, sub_id, hausnummer_bemerkung)"
-					+ " VALUES(?, ?, ?,"
-					+ " ?, ?, ?, ?, ?);";
+			String insertHousenumberWithoutGeometrySql = "INSERT into stadt_hausnummern(land_id, stadt_id, strasse_id, " +
+				"postcode, hausnummer, hausnummer_sortierbar, sub_id, hausnummer_bemerkung, extraosmtags) " +
+				"VALUES(?, ?, ?, " +
+				"?, ?, ?, ?, ?, ?::hstore);";
 			PreparedStatement insertHnoWoGeomStmt = housenumberConn.prepareStatement(insertHousenumberWithoutGeometrySql);
 
 
@@ -388,6 +389,17 @@ public class HousenumberList {
 					}
 				}
 				
+				String osmtagsString = "";
+				if (housenumber.osmtags.size() > 0) {
+					List<OSMTag> tags = housenumber.osmtags.getTags();
+					for(int tagindex = 0; tagindex < tags.size(); tagindex++) {
+						if (!osmtagsString.equals(""))
+							osmtagsString += ",";
+						osmtagsString += tags.get(tagindex).getKey() + "=>" +
+								tags.get(tagindex).getValue();
+					}
+				}
+
 				if(		(housenumber.getLon() != ImportAddress.lonUnset) && 
 						(housenumber.getLat() != ImportAddress.latUnset)) {
 					stmtindex = 1;
@@ -399,6 +411,7 @@ public class HousenumberList {
 					insertHnoWithGeomStmt.setString(stmtindex++, housenumber.getHousenumberSortable());
 					insertHnoWithGeomStmt.setString(stmtindex++, housenumber.getSubArea());
 					insertHnoWithGeomStmt.setString(stmtindex++, housenumber.getNote());
+					insertHnoWithGeomStmt.setString(stmtindex++, osmtagsString);
 					insertHnoWithGeomStmt.setDouble(stmtindex++, housenumber.getLon());
 					insertHnoWithGeomStmt.setDouble(stmtindex++, housenumber.getLat());
 					insertHnoWithGeomStmt.setInt(stmtindex++, Integer.parseInt(housenumber.getSourceSrid()));
@@ -415,6 +428,7 @@ public class HousenumberList {
 					insertHnoWoGeomStmt.setString(stmtindex++, housenumber.getHousenumberSortable());
 					insertHnoWoGeomStmt.setString(stmtindex++, housenumber.getSubArea());
 					insertHnoWoGeomStmt.setString(stmtindex++, housenumber.getNote());
+					insertHnoWoGeomStmt.setString(stmtindex++, osmtagsString);
 					System.out.println("insert hno without geom " + insertHnoWoGeomStmt.toString());
 					insertHnoWoGeomStmt.executeUpdate();
 				}

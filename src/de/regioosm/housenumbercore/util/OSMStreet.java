@@ -94,6 +94,7 @@ public class OSMStreet extends Street implements Comparable {
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "unclassified")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "residential")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "living_street")));
+		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "pedestrian")));		// new at 2018-04-08
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "service")));
 		OSMStreet.validHighwayTypes.add(new OSMTagList(new OSMTag("highway", "track")));
 //TODO add custom method to override this default setting of valid highway types

@@ -267,6 +267,7 @@ public class MunicipalityJobs {
 		Map<Street, OSMStreet> streets = new TreeMap<>();
 
 		String gebietsgeometrie = muniarea.getAreaPolygonAsWKB();
+		System.out.println("in getOSMStreetsFromDB gebietsgeometrie ===" + gebietsgeometrie + "===");
 
 //TODO better let is use externally from Code User and bring it as second parameter 
 // to this method
@@ -321,7 +322,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			int countstreetsegments = 0;
 				// loop over all osm ways in municipality area
 			while( selectStreetGeometriesRS.next() ) {
-	
+					
 					// if actual osm-way has been marked as to ignore (by a user in website), 
 					// then ignore it really (doubled named ways, for example, in allotments) 
 				if(ignoreStreetsBlacklist.contains(selectStreetGeometriesRS.getLong("osmid"))) {
@@ -338,7 +339,8 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 	
 				actualOSMStreet = new OSMStreet(muniarea, selectStreetGeometriesRS.getString("streetname"));
 				actualOSMStreet.setName(actualOSMStreet.normalizeName());
-	
+				if (selectStreetGeometriesRS.getString("streetname").equals("Alzaia Naviglio Pavese"))
+					System.out.println("debug strasse gefunden in subarea " + muniarea.getName());
 				countstreetsegments++;
 				System.out.println("#" + countstreetsegments + " ** "+selectStreetGeometriesRS.getString("osmid") + 
 					"===  Orig-DB-Straße ===" + selectStreetGeometriesRS.getString("streetname") +

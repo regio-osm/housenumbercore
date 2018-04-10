@@ -170,6 +170,7 @@ CREATE TABLE stadt_hausnummern
   hausnummer                      text           NOT NULL, 
   hausnummer_sortierbar           text           NOT NULL,
   hausnummer_bemerkung            text,
+  extraosmtags                    hstore,
   sub_id                          text, 
   point                           geometry,                     -- Geocoordinate in coordsystem 4326 of the address. Source see in column pointsource. new at 2014-06-17  
   pointsource                     text,                         -- Description, where the geocoordinate comes from (normally from the official source like the housenumber list. new at 2014-06-17
