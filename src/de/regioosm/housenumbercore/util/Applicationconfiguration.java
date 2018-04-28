@@ -1,6 +1,8 @@
 package de.regioosm.housenumbercore.util;
+import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -10,7 +12,6 @@ public class Applicationconfiguration {
 	public String servername = "";
 	public String application_homedir = "";
 	public String application_datadir = "";
-	public String db_structure = "osm2pgsql";
 	public String db_application_url = "";
 	public String db_application_username = "";
 	public String db_application_password = "";
@@ -22,12 +23,6 @@ public class Applicationconfiguration {
 	public String db_osm2pgsql_password = "";
 	public String db_osm2pgsqlwrite_username = "";
 	public String db_osm2pgsqlwrite_password = "";
-	public String db_osm2pgsqlfullhistoryodbl_url = "";
-	public String db_osm2pgsqlfullhistoryodbl_username = "";
-	public String db_osm2pgsqlfullhistoryodbl_password = "";
-	public String db_osm2pgsqlfullhistoryccbysa_url = "";
-	public String db_osm2pgsqlfullhistoryccbysa_username = "";
-	public String db_osm2pgsqlfullhistoryccbysa_password = "";
 	public String osmosis_laststatefile = "";
 	public String logging_filename = "";
 	public Level logging_console_level = Level.FINEST;
@@ -35,22 +30,29 @@ public class Applicationconfiguration {
 	
 	public Applicationconfiguration () {
 			// get some configuration infos
-		String configuration_filename = "housenumbercore.properties";		
+		String configuration_filename = "../housenumbercore.properties";		
 
 		final String dir = System.getProperty("user.dir");
 		System.out.println("current dir = " + dir);
 
 		try {
-			Reader reader = new FileReader( configuration_filename );
+			System.out.println("read property file " + dir + File.separator + configuration_filename);
+			Reader reader = new FileReader( dir + File.separator + configuration_filename );
 			Properties prop = new Properties();
 			prop.load( reader );
+				// iterate over all properties and remove in-line comments in property values
+			for (Entry<Object, Object> entry : prop.entrySet()) {
+		        if(entry.getValue().toString().indexOf("#") != -1) {
+		        	String tempentry = entry.getValue().toString().substring(0, entry.getValue().toString().indexOf("#"));
+		        	tempentry = tempentry.trim();
+		        	prop.setProperty(entry.getKey().toString(),  tempentry);
+		        }
+		    }
 			prop.list( System.out );
 		
 
 			if( prop.getProperty("servername") != null)
 				this.servername = prop.getProperty("servername");
-			if( prop.getProperty("db_structure") != null)
-				this.db_structure = prop.getProperty("db_structure");
 			if( prop.getProperty("application_homedir") != null)
 				this.application_homedir = prop.getProperty("application_homedir");
 			if( prop.getProperty("application_datadir") != null)
@@ -79,18 +81,6 @@ public class Applicationconfiguration {
 				this.db_osm2pgsqlwrite_password = prop.getProperty("db_osm2pgsqlwrite_password");
 
 
-			if( prop.getProperty("db_osm2pgsqlfullhistoryodbl_url") != null)
-				this.db_osm2pgsqlfullhistoryodbl_url = prop.getProperty("db_osm2pgsqlfullhistoryodbl_url");
-			if( prop.getProperty("db_osm2pgsqlfullhistoryodbl_username") != null)
-				this.db_osm2pgsqlfullhistoryodbl_username = prop.getProperty("db_osm2pgsqlfullhistoryodbl_username");
-			if( prop.getProperty("db_osm2pgsqlfullhistoryodbl_password") != null)
-				this.db_osm2pgsqlfullhistoryodbl_password = prop.getProperty("db_osm2pgsqlfullhistoryodbl_password");
-			if( prop.getProperty("db_osm2pgsqlfullhistoryccbysa_url") != null)
-				this.db_osm2pgsqlfullhistoryccbysa_url = prop.getProperty("db_osm2pgsqlfullhistoryccbysa_url");
-			if( prop.getProperty("db_osm2pgsqlfullhistoryccbysa_username") != null)
-				this.db_osm2pgsqlfullhistoryccbysa_username = prop.getProperty("db_osm2pgsqlfullhistoryccbysa_username");
-			if( prop.getProperty("db_osm2pgsqlfullhistoryccbysa_password") != null)
-				this.db_osm2pgsqlfullhistoryccbysa_password = prop.getProperty("db_osm2pgsqlfullhistoryccbysa_password");
 			if( prop.getProperty("osmosis_laststatefile") != null)
 				this.osmosis_laststatefile = prop.getProperty("osmosis_laststatefile");
 			if( prop.getProperty("logging_filename") != null)
@@ -115,12 +105,6 @@ public class Applicationconfiguration {
 			System.out.println(" .db_osm2pgsql_password                   ==="+this.db_osm2pgsql_password+"===");
 			System.out.println(" .db_osm2pgsqlwrite_username              ==="+this.db_osm2pgsqlwrite_username+"===");
 			System.out.println(" .db_osm2pgsqlwrite_password              ==="+this.db_osm2pgsqlwrite_password+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryodbl_url         ==="+this.db_osm2pgsqlfullhistoryodbl_url+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryodbl_username    ==="+this.db_osm2pgsqlfullhistoryodbl_username+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryodbl_password    ==="+this.db_osm2pgsqlfullhistoryodbl_password+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryccbysa_url       ==="+this.db_osm2pgsqlfullhistoryccbysa_url+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryccbysa_username  ==="+this.db_osm2pgsqlfullhistoryccbysa_username+"===");
-			System.out.println(" .db_osm2pgsqlfullhistoryccbysa_password  ==="+this.db_osm2pgsqlfullhistoryccbysa_password+"===");
 			System.out.println(" .osmosis_laststatefile                   ==="+this.osmosis_laststatefile+"===");
 			System.out.println(" .logging_filename                        ==="+this.logging_filename +"===");
 			System.out.println(" .logging_console_level                   ==="+this.logging_console_level.toString() +"===");

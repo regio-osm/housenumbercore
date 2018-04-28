@@ -1,0 +1,56 @@
+#		osm housenumber evaluation properties for repo housenumbercore
+
+
+#  --------------------------------------------------------------------------------------------------------------------------
+#     connection details for housenumber evaluation DB
+#  --------------------------------------------------------------------------------------------------------------------------
+
+#		db_application_url: jdbc connection url to application database housenumber evaluation
+db_application_url = jdbc:postgresql://localhost:5432/housenumbers
+
+db_application_username = fullaccessuser     # username for application DB, must have insert/update/delete/select access
+
+db_application_password = thisissecret     # password for username for application DB
+#														osmosis_laststatefile: absolute path and filename to osmosis file which contains info about actual osm db timestamp
+
+
+#  --------------------------------------------------------------------------------------------------------------------------
+#     file system and logging properties
+#  --------------------------------------------------------------------------------------------------------------------------
+#                                                                                                               publichtml_dir: home dir to static files for website 
+#     application_datadir: root directory for data, which will be imported. For example, housenumber lists
+application_datadir = /home/osm/apps/housenumbercore/data
+
+logging_filename = housenumbercore.log     #	log filename
+logging_console_level = FINEST     # logging_console_level: one of the fixed words: SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, OFF, ALL
+logging_file_level = FINER     #	logging_file_level: one of the fixed words: SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, OFF, ALL
+
+
+#  --------------------------------------------------------------------------------------------------------------------------
+#     connection details for optionally OSM DB in osm2pgsql structure, like for mapnik rendering
+#  --------------------------------------------------------------------------------------------------------------------------
+
+#     db_osm2pgsql_url: jdbc connection url to a osm2pgsql structured database with osm data
+db_osm2pgsql_url = jdbc:postgresql://localhost:5432/osm_mapnik
+db_osm2pgsql_username = fullaccessuser    # username for osm2pgsql DB, must have select access
+db_osm2pgsql_password = thisissecret    # password for username for osm2pgsql DB
+
+
+#  --------------------------------------------------------------------------------------------------------------------------
+servername = regio-osm.de     # just informational status, will not be used in program logic
+
+
+#  ====================================================================================================================
+#  additional access to listofstreet DB, if monthly theoretical housenumber evaluation
+#  will be used (in class TheoreticalHousenumbers in package de.regioosm.theoreticalhousenumbercore)
+#  --------------------------------------------------------------------------------------------------------------------
+#
+#  CAUTION: if you want to use this functionaliy, 
+#           the DB user in above property "db_osm2pgsql_username" must have also update access
+
+#     db_application_listofstreets_url: jdbc connection url to listofstreets DB
+db_application_listofstreets_url = jdbc:postgresql://localhost:5432/listofstreets
+db_application_listofstreets_username = readaccessuser     # username for listofstreets DB, must have select access
+db_application_listofstreets_password = thisissecret     # password for listofstreets DB
+#     filename, which contains data timestamp of osm2pgsql DB, for example diffs/last.state.txt
+osmosis_laststatefile = /home/osm/osmdb/diffs/last.state.txt
