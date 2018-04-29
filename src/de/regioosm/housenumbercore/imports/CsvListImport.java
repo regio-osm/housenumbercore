@@ -77,6 +77,21 @@ public class CsvListImport {
 			System.out.println("-listfiletimestamp YYYY-MM-DD: technical File Timestamp, time of download");
 			System.out.println("-coordinatesosmimportable yes|no: are Coordinates in import file free importable in OSM (license compatible)");
 			System.out.println("-useoverpass  yes|no: should Osm Overpass used for getting data or local DB (default)");
+			System.out.println("-c columnno=destination: which column (columnno, starting with 1) contains which destination field, see below.");
+			System.out.println("   This parameter can be used several times");;
+			System.out.println("   destination            meaning");;
+			System.out.println("   municipality           municipality name");
+			System.out.println("   municipalityref        reference id for municipality. You must know, which reference within a country will be used.");
+			System.out.println("   subarea                y");
+			System.out.println("   subareaid              y");
+			System.out.println("   street                 street name");
+			System.out.println("   housenumber            housenumber (completely or only full number. For additions, see two more destination fields");
+			System.out.println("   housenumberaddition    housenumberaddition: will be appended to housenumber, with separator, as defined in -housenumberseparator");
+			System.out.println("   housenumberaddition2   second housenumberaddition: will be appended to housenumber and housenumberaddition, with separator, as defined in -housenumberseparator2");
+			System.out.println("   postcode               postcode");
+			System.out.println("   lon                    lon, in source coordinate system");
+			System.out.println("   lat                    lat, in source coordinate system");
+			System.out.println("   sourcesrid             source coordinate system");
 			//System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
 			System.out.println("");
 			System.out.println("Importfile must have commentline in line 1, starting with #");
@@ -117,8 +132,11 @@ public class CsvListImport {
 		HashMap<String,String> submunicipalityIdList = new HashMap<String,String>();
 		HashMap<String,String> streetIdList = new HashMap<String,String>();
 		
+		CsvImportparameter importparameter = new CsvImportparameter();
+		
 		if (args.length >= 1) {
 			int argsOkCount = 0;
+			String[] argsCopy = args.clone();
 			for (int argsi = 0; argsi < args.length; argsi += 2) {
 				System.out.print(" args pair analysing #: " + argsi + "  ===" + args[argsi] + "===");
 				if (args.length > (argsi + 1)) {
@@ -129,15 +147,23 @@ public class CsvListImport {
 				if (args[argsi].equals("-country")) {
 					paramCountry = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-municipality")) {
 					paramMunicipality = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-municipalityref")) {
 					paramMunicipalityRef = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-coordinatesystem")) {
 					paramSourceSrid = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-useoverpass")) {
 					if (!args[argsi + 1].equals("")) {
 						String yesno = args[argsi + 1].toLowerCase().substring(0,1);
@@ -148,9 +174,13 @@ public class CsvListImport {
 						}
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-file")) {
 					paramImportfileName = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-filecharset")) {
 					if (!args[argsi + 1].equals("")) {
 						if (args[argsi + 1].toUpperCase().equals("ISO-8859-1"))
@@ -164,21 +194,33 @@ public class CsvListImport {
 						}
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-municipalityidfile")) {
 					parameterMunicipalityIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-submunicipalityidfile")) {
 					parameterSubMunicipalityIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-streetidfile")) {
 					parameterStreetIdListfilename = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-housenumberseparator")) {
 					parameterHousenumberadditionseparator = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-housenumberseparator2")) {
 					parameterHousenumberadditionseparator2 = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-subareaactive")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
@@ -187,19 +229,29 @@ public class CsvListImport {
 						parameterSubareaActive = false;
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-fieldseparator")) {
 					fieldSeparator = args[argsi + 1];
 					System.out.println("Info: explicit set field separator to '" + fieldSeparator + "'");
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-listurl")) {
 					parameterSourcelistUrl = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-copyright")) {
 					parameterSourcelistCopyright = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-useage")) {
 					parameterSourcelistUseage = args[argsi + 1];
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-listcontenttimestamp")) {
 					try {
 						parameterSourcelistContentdate = dateformatUS.parse(args[argsi + 1]);
@@ -207,6 +259,8 @@ public class CsvListImport {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-listfiletimestamp")) {
 					try {
 						parameterSourcelistFiledate = dateformatUS.parse(args[argsi + 1]);
@@ -214,6 +268,8 @@ public class CsvListImport {
 						e.printStackTrace();
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-coordinatesosmimportable")) {
 					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
 					if (yesno.equals("y") || yesno.equals("j")) {
@@ -222,15 +278,71 @@ public class CsvListImport {
 						parameterOfficialgeocoordinates = false;
 					}
 					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
+				} else if (args[argsi].equals("-c")) {
+					String argvalue = args[argsi + 1].toLowerCase();
+					if((argvalue.length() >= 2) && (argvalue.indexOf("=") != -1)) {
+						int columnNo = Integer.parseInt(argvalue.substring(0, argvalue.indexOf("=")));
+						String columnContent = argvalue.substring(argvalue.indexOf("=") + 1);
+						if((columnNo > 0) && !columnContent.equals("")) {
+							if(columnContent.equals("municipality"))
+								importparameter.setHeaderfield(HEADERFIELD.municipality, columnNo - 1);
+							else if(columnContent.equals("municipalityref"))
+								importparameter.setHeaderfield(HEADERFIELD.municipalityref, columnNo - 1);
+							else if(columnContent.equals("street"))
+								importparameter.setHeaderfield(HEADERFIELD.street, columnNo - 1);
+							else if(columnContent.equals("housenumber"))
+								importparameter.setHeaderfield(HEADERFIELD.housenumber, columnNo - 1);
+							else if(columnContent.equals("housenumberaddition"))
+								importparameter.setHeaderfield(HEADERFIELD.housenumberaddition, columnNo - 1);
+							else if(columnContent.equals("housenumberaddition2"))
+								importparameter.setHeaderfield(HEADERFIELD.housenumberaddition2, columnNo - 1);
+							else if(columnContent.equals("postcode"))
+								importparameter.setHeaderfield(HEADERFIELD.postcode, columnNo - 1);
+							else if(columnContent.equals("lon"))
+								importparameter.setHeaderfield(HEADERFIELD.lon, columnNo - 1);
+							else if(columnContent.equals("lat"))
+								importparameter.setHeaderfield(HEADERFIELD.lat, columnNo - 1);
+							else if(columnContent.equals("subarea"))
+								importparameter.setHeaderfield(HEADERFIELD.subarea, columnNo - 1);
+							else if(columnContent.equals("subareaid"))
+								importparameter.setHeaderfield(HEADERFIELD.subareaid, columnNo - 1);
+							else if(columnContent.equals("sourcesrid"))
+								importparameter.setHeaderfield(HEADERFIELD.sourcesrid, columnNo - 1);
+							else {
+								System.out.println("unknown destination '" + columnContent +
+									"', please correct and try again");
+								return;
+							}
+						} else {
+							System.out.println("invalid parameter value -c '" + argvalue + 
+								"', either column no is below 1 or destination behind = is missing, please correct and try again");
+							return;
+						}
+					}
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
+					argsOkCount += 2;
 				} else {
 					System.out.println("unknown program parameter '" + args[argsi] + "===");
 				}
 			}
 			if (argsOkCount != args.length) {
-				System.out.println("ERROR: not all programm parameters were valid, STOP");
+				System.out.println("ERROR: not all programm parameters were valid, please check following unknown parameters");
+				for (int argsi = 0; argsi < argsCopy.length; argsi += 2) {
+					if((argsCopy[argsi] == null) && (argsCopy[argsi + 1] == null))
+						continue;
+					System.out.print(" args pair analysing #: " + argsi + "  ===" + argsCopy[argsi] + "===");
+					if (args.length > (argsi + 1)) {
+						System.out.print("  args #+1: " + (argsi + 1) + "   ===" + argsCopy[argsi + 1] + "===");
+					}
+					System.out.println("");
+				}
 				return;
 			}
 		}
+		System.out.println(importparameter.printHeaderfields());
 		
 		try {
 			Class.forName("org.postgresql.Driver");
@@ -256,8 +368,6 @@ public class CsvListImport {
 				return;
 			}
 
-
-			CsvImportparameter importparameter = new CsvImportparameter();
 			
 			try {
 					// if importfile has no direct information about municipality name, 
@@ -354,13 +464,6 @@ public class CsvListImport {
 				importparameter.setImportfile(paramImportfileName, Charset.forName(parameterImportfileCharset));
 				importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
-				importparameter.setHeaderfield(HEADERFIELD.municipalityref, 3);
-				importparameter.setHeaderfield(HEADERFIELD.municipality, 4);
-				importparameter.setHeaderfield(HEADERFIELD.street, 5);
-				importparameter.setHeaderfield(HEADERFIELD.housenumber, 6);
-				importparameter.setHeaderfield(HEADERFIELD.postcode, 7);
-				importparameter.setHeaderfield(HEADERFIELD.lon, 10);
-				importparameter.setHeaderfield(HEADERFIELD.lat, 11);
 				
 				CsvReader csvreader = new CsvReader(importparameter);
 				Map<Municipality, HousenumberList> housenumberlists = csvreader.execute();
