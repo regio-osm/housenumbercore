@@ -263,7 +263,7 @@ public class MunicipalityArea extends Municipality {
 		String osmadminrelationSql = "";
 		osmadminrelationSql = "SELECT osm_id AS id, " +
 			" name, tags->'name:prefix' AS name_prefix, tags->'name:suffix' AS name_suffix, ";
-		if(!municipality.getOfficialKey().equals(""))
+		if ((municipality.getOfficialKey() != null) && !municipality.getOfficialKey().equals(""))
 			osmadminrelationSql += "tags->'" + municipality.getOfficialKey() + "' AS gemeindeschluessel, ";
 		else
 			osmadminrelationSql += "null AS gemeindeschluessel, ";
@@ -668,7 +668,7 @@ public class MunicipalityArea extends Municipality {
 
 		String subadminrelationSql = "SELECT osm_id AS id, tags->'name' AS name, " + 
 			"tags->'admin_level' AS admin_level, ";
-		if(municipality.getOfficialKey() != null)
+		if((municipality.getOfficialKey() != null) && !municipality.getOfficialKey().equals(""))
 			subadminrelationSql += "tags->? AS gemeindeschluessel, ";
 		else
 			subadminrelationSql += "null AS gemeindeschluessel, ";
@@ -682,7 +682,8 @@ public class MunicipalityArea extends Municipality {
 		try {
 			subadminrelationStmt = osmdbConn.prepareStatement(subadminrelationSql);
 			int stmtindex = 1;
-			subadminrelationStmt.setString(stmtindex++, municipality.getOfficialKey());
+			if((municipality.getOfficialKey() != null) && !municipality.getOfficialKey().equals(""))
+               subadminrelationStmt.setString(stmtindex++, municipality.getOfficialKey());
 			subadminrelationStmt.setString(stmtindex++, adminPolygonWKB);
 		} catch (SQLException e1) {
 			// TODO Auto-generated catch block
