@@ -217,5 +217,18 @@ public class CsvImportparameter {
 		this.housenumberadditionseparator2 = separator2;
 	}
 
+
+	public String printHeaderfields() {
+		String output = "";
+		
+		for (Map.Entry<HEADERFIELD, Integer> fieldentry : headerfields.entrySet()) {
+			HEADERFIELD fieldName = fieldentry.getKey();
+			Integer fieldColumn = fieldentry.getValue();
+			if (!output.equals(""))
+				output += ", ";
+			output += fieldColumn + "=" + fieldName;
+		}
+		return output;
+	}
 	
 }
