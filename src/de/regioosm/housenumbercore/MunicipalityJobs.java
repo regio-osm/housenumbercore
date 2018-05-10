@@ -807,7 +807,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 
 			String insertJobStreetSql = "INSERT INTO jobs_strassen " +
 				"(job_id, land_id, stadt_id, strasse_id, osm_ids,linestring) " +
-				"VALUES (?, (SELECT id FROM land WHERE countrycode = ?), ?, ?, ?, ST_SetSrid(?::geometry,?));";
+				"VALUES (?, (SELECT id FROM land WHERE countrycode = ?), ?, ?, ?, ST_Transform(ST_SetSrid(?::geometry,?),900913));";
 			PreparedStatement insertJobStreetStmt = housenumberConn.prepareStatement(insertJobStreetSql);
 
 			String selectOfficialJobStreetsSql = "SELECT DISTINCT ON (strasse, strasse_id) " +
