@@ -222,6 +222,7 @@ CREATE TABLE evaluations
   CONSTRAINT pk_evaluation PRIMARY KEY (id)
 )
 WITH (OIDS=FALSE);
+CREATE INDEX pk_evaluations_jobid_id ON evaluations USING btree (job_id);
 
 
 -- Table: auswertung_hausnummern (evaluation_housenumbers)  - all evaluated housenumbers, (if official, identical or osm-singles, optimized for web frontend
