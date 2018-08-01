@@ -15,10 +15,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.openstreetmap.osmosis.core.domain.common.SimpleTimestampContainer;
 
 import de.regioosm.housenumbercore.util.Applicationconfiguration;
 
@@ -96,10 +99,18 @@ public class HousenumberList {
 	private static Connection housenumberConn = null;
 
 	public HousenumberList() {
-		
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(1970, 0, 1);
+		this.sourcelistContentdate = calendar.getTime();
+		this.sourcelistFiledate = calendar.getTime();
 	}
 
 	public HousenumberList(Municipality municipality) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(1970, 0, 1);
+		this.sourcelistContentdate = calendar.getTime();
+		this.sourcelistFiledate = calendar.getTime();
+		
 		this.setMunicipality(municipality);
 	}
 	
@@ -297,11 +308,12 @@ public class HousenumberList {
 							"FROM land AS l WHERE countrycode = ?;";
 					PreparedStatement selectCountryStmt = 
 						housenumberConn.prepareStatement(selectCountrySql);
+					selectCountryStmt.setString(1, this.countrycode);
 					System.out.println("Select country Statement ===" + 
 						selectCountryStmt.toString() + "=== ...");
 					ResultSet selectCountryRs = selectCountryStmt.executeQuery();
 					if (selectCountryRs.next()) {
-						countryDBId = selectMunicipalityRs.getLong("countryid");
+						countryDBId = selectCountryRs.getLong("countryid");
 					}
 				}
 
@@ -506,10 +518,12 @@ public class HousenumberList {
 	}
 
 	public Date getContentDate() {
+		System.out.println("sourcelistContentdate is set to ===" + sourcelistContentdate.toString() + "===");
 		return this.sourcelistContentdate;
 	}
 
 	public Date getFileDate() {
+		System.out.println("sourcelistFiledate is ===" + sourcelistFiledate.toString() + "===");
 		return this.sourcelistFiledate;
 	}
 	
@@ -589,10 +603,16 @@ public class HousenumberList {
 	}
 
 	public void setContentDate(Date contentdate) {
+		if ( contentdate == null )
+			return;
+		System.out.println("explicity set sourcelistContentdate to ===" + contentdate.toString() + "===");
 		this.sourcelistContentdate = contentdate;
 	}
 
 	public void setFileDate(Date filedate) {
+		if ( filedate == null )
+			return;
+		System.out.println("explicity set sourcelistFiledate to ===" + filedate.toString() + "===");
 		this.sourcelistFiledate = filedate;
 	}
 

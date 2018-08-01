@@ -14,6 +14,8 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
+
 
 public class CsvImportparameter {
 	public enum HEADERFIELD {region, district, municipality, municipalityid, municipalityref, postcode, 
@@ -22,6 +24,8 @@ public class CsvImportparameter {
 
 
 	private String countrycode = "";
+	private String municipality = null;
+	private String municipalityRef = null;
 	
 	/**
 	 * SRID Id of coordinates System
@@ -50,6 +54,11 @@ public class CsvImportparameter {
 	 * 
 	 */
 	private boolean subareaActive = false;
+
+	/**
+	 * convert Street name to Upper-Lower case, if completely in upper or lower
+	 */
+	private boolean convertStreetToUpperLower = false;
 	
 	/**
 	 * collect all housenumbers, as found in input file. Later, the housenumbers will be stored from this structure to DB. 
@@ -84,20 +93,38 @@ public class CsvImportparameter {
 		return countrycode;
 	}
 
+
+	public String getMunicipality() {
+		return this.municipality;
+	}
+	
+	public String getMunicipalityRef() {
+		return this.municipalityRef;
+	}
+	
 	/**
 	 * @return the column for field, in Range 0 until number of fields minus 1
 	 * -1 will be returned, if field name wasn't found
 	 */
-	public int getHeaderfieldColumn(HEADERFIELD municipality) {
-		if((municipality == null) || municipality.equals(""))
+	public int getHeaderfieldColumn(HEADERFIELD field) {
+		if((field== null) || field.equals(""))
 			return -1;
 
-		if(headerfields.containsKey(municipality))
-			return headerfields.get(municipality);
+		if(headerfields.containsKey(field))
+			return headerfields.get(field);
 
 		return -1;
 	}
 
+	
+	public boolean hasField(HEADERFIELD field) {
+		if(getHeaderfieldColumn(field) == -1)
+			return false;
+		else
+			return true;
+	}
+
+	
 	public String getFieldSeparator() {
 		return fieldseparator;
 	}
@@ -150,16 +177,27 @@ public class CsvImportparameter {
 		return subareaActive;
 	}
 
+	public boolean convertStreetToUpperLower() {
+		return this.convertStreetToUpperLower;
+	}
 
 	
 	
 	/**
 	 * @param countrycode the countrycode to set
 	 */
-	public void setCountrycode(String countrycode) {
+	public void setCountrycode( String countrycode ) {
 		this.countrycode = countrycode;
 	}
 
+	public void setMunicipality( String municipality ) {
+		this.municipality = municipality;
+	}
+	
+	public void setMunicipalityRef( String municipalityRef ) {
+		this.municipalityRef = municipalityRef;
+	}
+	
 	public void setFieldSeparator(String separator) {
 		this.fieldseparator = separator;
 	}
@@ -217,6 +255,9 @@ public class CsvImportparameter {
 		this.housenumberadditionseparator2 = separator2;
 	}
 
+	public void convertStreetToUpperLower(boolean convert) {
+		this.convertStreetToUpperLower = convert;
+	}
 
 	public String printHeaderfields() {
 		String output = "";
