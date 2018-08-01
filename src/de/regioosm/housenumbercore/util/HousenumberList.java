@@ -297,11 +297,12 @@ public class HousenumberList {
 							"FROM land AS l WHERE countrycode = ?;";
 					PreparedStatement selectCountryStmt = 
 						housenumberConn.prepareStatement(selectCountrySql);
+					selectCountryStmt.setString(1, this.countrycode);
 					System.out.println("Select country Statement ===" + 
 						selectCountryStmt.toString() + "=== ...");
 					ResultSet selectCountryRs = selectCountryStmt.executeQuery();
 					if (selectCountryRs.next()) {
-						countryDBId = selectMunicipalityRs.getLong("countryid");
+						countryDBId = selectCountryRs.getLong("countryid");
 					}
 				}
 

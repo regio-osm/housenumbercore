@@ -36,6 +36,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import de.regioosm.housenumbercore.util.CsvImportparameter.HEADERFIELD;
 
@@ -100,11 +102,16 @@ public class CsvReader {
 			return "";
 		}
 
-		if(spalten.length >= importparameter.getHeaderfieldColumn(field)) {
+		if(spalten.length > importparameter.getHeaderfieldColumn(field)) {
 			String content = spalten[importparameter.getHeaderfieldColumn(field)];
 			if(content.length() > 0)
 				content = content.trim();
 			return content;
+		} else {
+			System.out.println("WARNING: line #" + lineno + " has " + spalten.length + " columns, " +
+				" field ===" + field.toString() + "===, is in column " +
+				importparameter.getHeaderfieldColumn(field) + ", theres line will be ignored, is ===" +
+				line + "===");
 		}
 		
 		return "";
@@ -127,6 +134,40 @@ public class CsvReader {
 	private static ArrayList<String> uppercaselist = new ArrayList<>();
 	private static ArrayList<String> lowercaselist = new ArrayList<>();
 
+
+	private String StreetToUpperLower(String street) {
+		Pattern wildcardPattern = Pattern.compile("([A-ZÄÉÈÖÜĂÂÎŞŢ])([A-ZÄÉÈÖÜßĂÂÎŞŢ]*)");				// A to Z and all 5 special romania chars http://de.wikipedia.org/wiki/Rum%C3%A4nisches_Alphabet#Alphabet_und_Aussprache
+
+		Matcher match = wildcardPattern.matcher(street);
+		StringBuffer sb = new StringBuffer();
+		boolean matchFind = match.find();
+		String foundstring = "";
+		boolean matchFixToLowerCase = false;
+		boolean matchFixToUpperCase = false;
+		while(matchFind) {
+			matchFixToLowerCase = false;
+			matchFixToUpperCase = false;
+			foundstring = match.group(1);
+			String replacetext = match.group(1);
+			if(match.groupCount() >= 2) {
+				foundstring += match.group(2);
+				if(lowercaselist.contains(foundstring.toLowerCase())) {
+					replacetext = match.group(1).toLowerCase() + match.group(2).toLowerCase();
+					matchFixToLowerCase = true;
+				}
+				if(uppercaselist.contains(foundstring.toUpperCase())) {
+					replacetext = match.group(1).toUpperCase() + match.group(2).toUpperCase();
+					matchFixToUpperCase = true;
+				}
+				if(!matchFixToLowerCase && !matchFixToUpperCase)
+					replacetext += match.group(2).toLowerCase();
+			}
+			match.appendReplacement(sb,replacetext);
+			matchFind = match.find();
+		}
+		match.appendTail(sb);
+		return sb.toString();
+	}
 	
 	private void analyseHeaderline(String line) {
 
@@ -347,18 +388,24 @@ public class CsvReader {
 			address.setMunicipality(getFieldContent(line, HEADERFIELD.municipality));
 
 			address.setMunicipalityRef(getFieldContent(line, HEADERFIELD.municipalityref));
-			if(	address.getMunicipality().equals("") && 
+			if (address.getMunicipality().equals("") && 
 				(importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)) != null)) {
 				address.setMunicipality(importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)));
 			}
 
-			address.setStreet(getFieldContent(line, HEADERFIELD.street));
-//TODO Street_UpperLower(strasse)
+			if (importparameter.convertStreetToUpperLower()) {
+				address.setStreet(StreetToUpperLower(getFieldContent(line, HEADERFIELD.street)));
+			} else {
+				address.setStreet(getFieldContent(line, HEADERFIELD.street));
+			}
 
-			if(	getFieldContent(line, HEADERFIELD.streetid).equals("") &&
+			if (getFieldContent(line, HEADERFIELD.streetid).equals("") &&
 				(importparameter.getStreetIDListEntry(getFieldContent(line, HEADERFIELD.streetid)) != null)) {
-				address.setStreet(importparameter.getStreetIDListEntry(getFieldContent(line, HEADERFIELD.streetid)));
-//TODO Street_UpperLower(strasse)
+				if (importparameter.convertStreetToUpperLower()) {
+					address.setStreet(StreetToUpperLower(importparameter.getStreetIDListEntry(getFieldContent(line, HEADERFIELD.streetid))));
+				} else {
+					address.setStreet(importparameter.getStreetIDListEntry(getFieldContent(line, HEADERFIELD.streetid)));
+				}
 			}
 				
 			address.setPostcode(getFieldContent(line, HEADERFIELD.postcode));
@@ -579,39 +626,6 @@ public class CsvReader {
 		}
 	}
 
-	public static String Street_UpperLower(String street) {
-		Pattern wildcardPattern = Pattern.compile("([A-ZÄÉÈÖÜĂÂÎŞŢ])([A-ZÄÉÈÖÜßĂÂÎŞŢ]*)");				// A to Z and all 5 special romania chars http://de.wikipedia.org/wiki/Rum%C3%A4nisches_Alphabet#Alphabet_und_Aussprache
-
-		Matcher match = wildcardPattern.matcher(street);
-		StringBuffer sb = new StringBuffer();
-		boolean matchFind = match.find();
-		String foundstring = "";
-		boolean matchFixToLowerCase = false;
-		boolean matchFixToUpperCase = false;
-		while(matchFind) {
-			matchFixToLowerCase = false;
-			matchFixToUpperCase = false;
-			foundstring = match.group(1);
-			String replacetext = match.group(1);
-			if(match.groupCount() >= 2) {
-				foundstring += match.group(2);
-				if(lowercaselist.contains(foundstring.toLowerCase())) {
-					replacetext = match.group(1).toLowerCase() + match.group(2).toLowerCase();
-					matchFixToLowerCase = true;
-				}
-				if(uppercaselist.contains(foundstring.toUpperCase())) {
-					replacetext = match.group(1).toUpperCase() + match.group(2).toUpperCase();
-					matchFixToUpperCase = true;
-				}
-				if(!matchFixToLowerCase && !matchFixToUpperCase)
-					replacetext += match.group(2).toLowerCase();
-			}
-			match.appendReplacement(sb,replacetext);
-			matchFind = match.find();
-		}
-		match.appendTail(sb);
-		return sb.toString();
-	}
 */
 	
 	public void initialiseLuxembourg() {
