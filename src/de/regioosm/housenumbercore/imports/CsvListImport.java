@@ -77,6 +77,7 @@ public class CsvListImport {
 			System.out.println("-listfiletimestamp YYYY-MM-DD: technical File Timestamp, time of download");
 			System.out.println("-coordinatesosmimportable yes|no: are Coordinates in import file free importable in OSM (license compatible)");
 			System.out.println("-useoverpass  yes|no: should Osm Overpass used for getting data or local DB (default)");
+			System.out.println("-convertstreetupperlower yes|no: convert street name to upper lower, if complete upper or complete lower case letters (default no)");
 			System.out.println("-c columnno=destination: which column (columnno, starting with 1) contains which destination field, see below.");
 			System.out.println("   This parameter can be used several times");;
 			System.out.println("   destination            meaning");;
@@ -92,6 +93,8 @@ public class CsvListImport {
 			System.out.println("   lon                    lon, in source coordinate system");
 			System.out.println("   lat                    lat, in source coordinate system");
 			System.out.println("   sourcesrid             source coordinate system");
+			System.out.println("   note                   official note to an address, for example, special address, or house with address not built yet");
+			
 			//System.out.println("Liste enthält keine Stadtteilzuordnungen zur jeweiligen Hausnummer");
 			System.out.println("");
 			System.out.println("Importfile must have commentline in line 1, starting with #");
@@ -126,6 +129,7 @@ public class CsvListImport {
 		Date parameterSourcelistContentdate = null;
 		Date parameterSourcelistFiledate = null;
 		boolean parameterOfficialgeocoordinates = false;
+		boolean parameterConvertstreetupperlower = false;
 
 
 		HashMap<String,String> municipalityIdList = new HashMap<String,String>();
@@ -280,6 +284,16 @@ public class CsvListImport {
 					argsOkCount += 2;
 					argsCopy[argsi] = null;
 					argsCopy[argsi+1] = null;
+				} else if (args[argsi].equals("-convertstreetupperlower")) {
+					String yesno = args[argsi + 1].toLowerCase().substring(0,1);
+					if (yesno.equals("y") || yesno.equals("j")) {
+						parameterConvertstreetupperlower = true;
+					} else {
+						parameterConvertstreetupperlower = false;
+					}
+					argsOkCount += 2;
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
 				} else if (args[argsi].equals("-c")) {
 					String argvalue = args[argsi + 1].toLowerCase();
 					if((argvalue.length() >= 2) && (argvalue.indexOf("=") != -1)) {
@@ -310,6 +324,8 @@ public class CsvListImport {
 								importparameter.setHeaderfield(HEADERFIELD.subareaid, columnNo - 1);
 							else if(columnContent.equals("sourcesrid"))
 								importparameter.setHeaderfield(HEADERFIELD.sourcesrid, columnNo - 1);
+							else if(columnContent.equals("note"))
+								importparameter.setHeaderfield(HEADERFIELD.note, columnNo - 1);
 							else {
 								System.out.println("unknown destination '" + columnContent +
 									"', please correct and try again");
@@ -331,12 +347,15 @@ public class CsvListImport {
 			if (argsOkCount != args.length) {
 				System.out.println("ERROR: not all programm parameters were valid, please check following unknown parameters");
 				for (int argsi = 0; argsi < argsCopy.length; argsi += 2) {
-					if((argsCopy[argsi] == null) && (argsCopy[argsi + 1] == null))
+					System.out.print(" args pair analysing #: " + argsi + "  =" + argsCopy[argsi] + ": ");
+					if((argsCopy[argsi] == null) && (argsCopy[argsi + 1] == null)) {
+						System.out.println(" successfully read");
 						continue;
-					System.out.print(" args pair analysing #: " + argsi + "  ===" + argsCopy[argsi] + "===");
-					if (args.length > (argsi + 1)) {
-						System.out.print("  args #+1: " + (argsi + 1) + "   ===" + argsCopy[argsi + 1] + "===");
 					}
+					if (argsCopy[argsi] == null) 
+						System.out.print("parameter key has been successfully read");
+					if (argsCopy[argsi + 1] == null) 
+							System.out.print("parameter value has been successfully read");
 					System.out.println("");
 				}
 				return;
@@ -347,6 +366,7 @@ public class CsvListImport {
 		try {
 			Class.forName("org.postgresql.Driver");
 		} catch (ClassNotFoundException e) {
+			System.out.println("Postgres-Driver couldn't be found. Program STOPS");
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -448,6 +468,7 @@ public class CsvListImport {
 				}
 
 				Municipality.connectDB(housenumberConn);
+				System.out.println("after Municipality.connectDB");
 
 				try {
 					importparameter.setCountrycode(Country.getCountryShortname(paramCountry));
@@ -457,6 +478,8 @@ public class CsvListImport {
 						paramCountry + " from DB, please check country name and repeat program.");
 					return;
 				}
+				System.out.println("after importparameter.setCountrycode");
+
 				//Switzerland: nationwide: -country "Schweiz" -coordinatesystem 2056 -housenumberSeparator "" -subareaactive "n" -file /home/osm/apps/housenumbercore/data/Schweiz/CH-20180325-1253.csv -listurl "https://a.b.c/de.txt" -copyright "Copyright Text xyz" -useage "Nutzungsvereinbarung xy" -listcontenttimestamp 2018-03-01 -listfiletimestamp 2018-03-15 -coordinatesOSMImportable no -filecharset "UTF-8" -useoverpass yes
 				//Switzerland Kanton Basel-Stadt: -land "Schweiz" -koordsystem 2056 -housenumberSeparator "" -subgebieteaktiv "n" -datei /home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Schweiz/Basel-Stadt/2018/DM_Datenmarkt/Datenmarkt.csv -listurl "https://basel.txt" -copyright "Copyright basel" -useage "Nutzungsvereinbarung basel" -listcontenttimestamp 2018-03-31 -listfiletimestamp 2018-04-01 -CoordinatesOSMImportable yes
 				importparameter.setSubareaActive(parameterSubareaActive);
@@ -464,9 +487,11 @@ public class CsvListImport {
 				importparameter.setImportfile(paramImportfileName, Charset.forName(parameterImportfileCharset));
 				importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
+				importparameter.convertStreetToUpperLower(parameterConvertstreetupperlower);
 				
 				CsvReader csvreader = new CsvReader(importparameter);
 				Map<Municipality, HousenumberList> housenumberlists = csvreader.execute();
+				System.out.println("Number of read housenumber lists: " + housenumberlists.size());
 				for (Map.Entry<Municipality, HousenumberList> listentry : housenumberlists.entrySet()) {
 					Municipality municipality = listentry.getKey();
 					if (1 == 0) {	// actualy hard coded for Switzerland Kanton Basel-Stadt in 2018-03:
@@ -480,6 +505,18 @@ public class CsvListImport {
 						continue;
 					else
 						System.out.println("unknown City: " + municipality.getName());
+					}
+					
+						// if only one housenumberliste was read and there is no name for municipality
+						// and no municipality ref, then check, if these two values were given as 
+						// program parameter then set the properties to the parameter values
+					if ((housenumberlists.size() == 1) && 
+						municipality.getName().equals("") &&
+						municipality.getOfficialRef().equals("") &
+						!paramMunicipality.equals("") &&
+						!paramMunicipalityRef.equals("")) {
+						municipality.setName(paramMunicipality);
+						municipality.setOfficialRef(paramMunicipalityRef);
 					}
 					HousenumberList housenumberlist = listentry.getValue();
 					if (1 == 0) {	// actualy hard coded for Switzerland Kanton Basel-Stadt in 2018-03:
@@ -521,7 +558,7 @@ public class CsvListImport {
 							}
 						} else  {
 							municipality = Municipality.next();
-							System.out.println("municipality already exists, therefor import of liste can be done");
+							System.out.println("municipality already exists, therefor import of list can be done");
 							System.out.println("here is the found municipality with its properties: " + municipality.toString());
 						}
 						housenumberlist.storeToDB();

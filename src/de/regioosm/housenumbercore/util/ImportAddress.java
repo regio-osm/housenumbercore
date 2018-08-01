@@ -145,6 +145,8 @@ public class ImportAddress extends Address {
 			output += " Note: " + note;
 		if (streetDBId != 0L)
 			output += " Street DB-Id: " + streetDBId;
+		if ((note != null) && !note.equals(""))
+			output += " Note: " + note;
 		
 		return output;
 	}

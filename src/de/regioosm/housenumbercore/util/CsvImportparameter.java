@@ -50,6 +50,11 @@ public class CsvImportparameter {
 	 * 
 	 */
 	private boolean subareaActive = false;
+
+	/**
+	 * convert Street name to Upper-Lower case, if completely in upper or lower
+	 */
+	private boolean convertStreetToUpperLower = false;
 	
 	/**
 	 * collect all housenumbers, as found in input file. Later, the housenumbers will be stored from this structure to DB. 
@@ -150,6 +155,9 @@ public class CsvImportparameter {
 		return subareaActive;
 	}
 
+	public boolean convertStreetToUpperLower() {
+		return this.convertStreetToUpperLower;
+	}
 
 	
 	
@@ -217,6 +225,9 @@ public class CsvImportparameter {
 		this.housenumberadditionseparator2 = separator2;
 	}
 
+	public void convertStreetToUpperLower(boolean convert) {
+		this.convertStreetToUpperLower = convert;
+	}
 
 	public String printHeaderfields() {
 		String output = "";
