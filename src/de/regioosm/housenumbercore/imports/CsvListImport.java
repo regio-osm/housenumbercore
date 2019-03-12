@@ -482,13 +482,18 @@ public class CsvListImport {
 
 				//Switzerland: nationwide: -country "Schweiz" -coordinatesystem 2056 -housenumberSeparator "" -subareaactive "n" -file /home/osm/apps/housenumbercore/data/Schweiz/CH-20180325-1253.csv -listurl "https://a.b.c/de.txt" -copyright "Copyright Text xyz" -useage "Nutzungsvereinbarung xy" -listcontenttimestamp 2018-03-01 -listfiletimestamp 2018-03-15 -coordinatesOSMImportable no -filecharset "UTF-8" -useoverpass yes
 				//Switzerland Kanton Basel-Stadt: -land "Schweiz" -koordsystem 2056 -housenumberSeparator "" -subgebieteaktiv "n" -datei /home/openstreetmap/NASI/OSMshare/Projekte-Zusammenarbeiten/Hausnummernlisten/Schweiz/Basel-Stadt/2018/DM_Datenmarkt/Datenmarkt.csv -listurl "https://basel.txt" -copyright "Copyright basel" -useage "Nutzungsvereinbarung basel" -listcontenttimestamp 2018-03-31 -listfiletimestamp 2018-04-01 -CoordinatesOSMImportable yes
+				importparameter.setFieldSeparator(fieldSeparator);
 				importparameter.setSubareaActive(parameterSubareaActive);
 				importparameter.setSourceCoordinateSystem(paramSourceSrid);
 				importparameter.setImportfile(paramImportfileName, Charset.forName(parameterImportfileCharset));
 				importparameter.setHousenumberFieldseparators(parameterHousenumberadditionseparator,
 					parameterHousenumberadditionseparator2);
 				importparameter.convertStreetToUpperLower(parameterConvertstreetupperlower);
-				
+				if ( !paramMunicipality.equals("") )
+					importparameter.setMunicipality(paramMunicipality);
+				if ( !paramMunicipalityRef.equals("") )
+					importparameter.setMunicipalityRef(paramMunicipalityRef);
+
 				CsvReader csvreader = new CsvReader(importparameter);
 				Map<Municipality, HousenumberList> housenumberlists = csvreader.execute();
 				System.out.println("Number of read housenumber lists: " + housenumberlists.size());
@@ -506,7 +511,7 @@ public class CsvListImport {
 					else
 						System.out.println("unknown City: " + municipality.getName());
 					}
-					
+System.out.println(" vorher getName ===" + municipality.getName() + "===, getref ===" + municipality.getOfficialRef() + "===");
 						// if only one housenumberliste was read and there is no name for municipality
 						// and no municipality ref, then check, if these two values were given as 
 						// program parameter then set the properties to the parameter values
@@ -518,6 +523,7 @@ public class CsvListImport {
 						municipality.setName(paramMunicipality);
 						municipality.setOfficialRef(paramMunicipalityRef);
 					}
+System.out.println("nachher getName ===" + municipality.getName() + "===, getref ===" + municipality.getOfficialRef() + "===");
 					HousenumberList housenumberlist = listentry.getValue();
 					if (1 == 0) {	// actualy hard coded for Switzerland Kanton Basel-Stadt in 2018-03:
 									// expand the abbreviated street names
