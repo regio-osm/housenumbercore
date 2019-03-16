@@ -45,6 +45,10 @@ public class MunicipalityArea extends Municipality {
 	public MunicipalityArea(Municipality muni) throws Exception {
 		super(muni);
 
+		if ( ( housenumberConn != null) && ( osmdbConn != null) ) {
+			return;
+		}
+			
 		Applicationconfiguration configuration = new Applicationconfiguration();
 
 		try {
@@ -254,7 +258,8 @@ public class MunicipalityArea extends Municipality {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
+//ToDo don't work fix with local database. If User wants to use overpass, check it here and use different sources
+		
 		String actual_polygon_part = "";
 		String completePolygonWKB = "";
 		String completePolygonIdlist = "";
@@ -615,6 +620,7 @@ public class MunicipalityArea extends Municipality {
 							insertSuburbStmt.setString(stmtindex++, "-1");
 							insertSuburbStmt.setLong(stmtindex++, this.adminPolygonOsmId);
 							insertSuburbStmt.setString(stmtindex++, this.adminPolygonWKB);
+							System.out.println("insert subarea into table gebiete with statement " + insertSuburbStmt.toString());
 
 							ResultSet insertSuburbRS = insertSuburbStmt.executeQuery();
 							if( insertSuburbRS.next() ) {

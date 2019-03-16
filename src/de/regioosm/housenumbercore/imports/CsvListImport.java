@@ -557,6 +557,23 @@ System.out.println("nachher getName ===" + municipality.getName() + "===, getref
 						if(numbermunicipalities == 0) {
 							try {
 								municipality = municipality.store();
+								int newnumbermunicipalities = 0; 
+								try {
+									newnumbermunicipalities = Municipality.search(municipality.getCountrycode(), 
+										municipality.getName(), municipality.getOfficialRef(), "");
+								} catch (Exception e1) {
+									System.out.println("Error ocurred, when tried to get new stored municipality");
+									System.out.println("Error details: " + e1.toString());
+									return;
+								}
+								if ( newnumbermunicipalities != 1 ) {
+									System.out.println("new stored municipality couldn't be found exactly one time, but " + 
+										newnumbermunicipalities + ", AN ERROR OCCURED, PROGRA STOPS");
+										return;
+								} else  {
+									municipality = Municipality.next();
+									System.out.println("here is the new stored municipality with its properties: " + municipality.toString());
+								}								
 							} catch (Exception e) {
 								System.out.println("Error ocurred, when tried to create municipality in database.");
 								System.out.println("Error details: " + e.toString());
@@ -586,6 +603,7 @@ System.out.println("nachher getName ===" + municipality.getName() + "===, getref
 						System.out.println("Processing municipality " + municipality.toString() + "===");
 						if((newarea = newarea.generateMunicipalityPolygon(municipality, 0, true)) != null) {
 							System.out.println("Processing newarea: " + newarea.toString() + "===");
+// ToDo: how to define table jobs, field schedule?
 							jobs.generateJob(newarea);
 							Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
 							jobs.storeStreets(newarea, osmstreets);
