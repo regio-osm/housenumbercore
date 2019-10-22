@@ -117,6 +117,25 @@ public class CsvReader {
 		return "";
 	}
 
+	private String getFieldContent(String line, int columnno) {
+		if((line == null) || line.equals(""))
+			return "";
+
+		String spalten[] = line.split(importparameter.getFieldSeparator());
+
+		if( spalten.length > columnno ) {
+			String content = spalten[columnno];
+			if(content.length() > 0)
+				content = content.trim();
+			return content;
+		} else {
+			System.out.println("WARNING: line #" + lineno + " has " + spalten.length + " columns, " +
+				" less than expected. Required column no # " + columnno + " is not available, sorry");
+		}
+		
+		return "";
+	}
+
 	private int numberOfOccurences(String text, String search) {
 		int count = 0;
 		
@@ -379,7 +398,10 @@ public class CsvReader {
 			uppercaselist.add("II");
 		}
 
+			// get custom header fields
+		Map<Integer, String> customheaderfields = importparameter.getCustomHeaderfields();
 
+		
 		String line = "";
 		while ((line = readln()) != null) {
 			address = new ImportAddress();
@@ -447,7 +469,15 @@ public class CsvReader {
 				address.setMunicipality(getLuxembourgMunicipalityforSubarea(address.getSubArea()));
 			}
 
-			
+				// work on custom header fields, if defined
+			for (Map.Entry<Integer, String> customfieldentry : customheaderfields.entrySet()) {
+				int columnno = customfieldentry.getKey();
+				String osmkey = customfieldentry.getValue();
+				String columncontent = getFieldContent(line, columnno);
+				if ( !columncontent.equals("") )
+					address.setOSMTag(osmkey, columncontent);
+			}
+
 			String sourcesrid = importparameter.getSourceCoordinateSystem();
 			if(importparameter.hasField(HEADERFIELD.sourcesrid) ) {
 				sourcesrid = getFieldContent(line, HEADERFIELD.sourcesrid);
