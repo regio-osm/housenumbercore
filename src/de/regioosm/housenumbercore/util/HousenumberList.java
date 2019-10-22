@@ -402,13 +402,13 @@ public class HousenumberList {
 				}
 				
 				String osmtagsString = "";
-				if (housenumber.osmtags.size() > 0) {
-					List<OSMTag> tags = housenumber.osmtags.getTags();
-					for(int tagindex = 0; tagindex < tags.size(); tagindex++) {
+				OSMTagList osmtags = housenumber.getOSMTagList();
+				if (osmtags.size() > 0) {
+					for(int tagindex = 0; tagindex < osmtags.size(); tagindex++) {
 						if (!osmtagsString.equals(""))
 							osmtagsString += ",";
-						osmtagsString += tags.get(tagindex).getKey() + "=>" +
-								tags.get(tagindex).getValue();
+						osmtagsString += osmtags.getKey(tagindex) + "=>" +
+							osmtags.getValue(tagindex);
 					}
 				}
 

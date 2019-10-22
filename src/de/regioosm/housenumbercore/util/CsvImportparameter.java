@@ -64,6 +64,11 @@ public class CsvImportparameter {
 	 * collect all housenumbers, as found in input file. Later, the housenumbers will be stored from this structure to DB. 
 	 */
 	private Map<HEADERFIELD, Integer> headerfields = new HashMap<>();
+
+	/**
+	 * Structure to identify columns, where column values will be stored as osm-values with osm-key as name of Map value
+	 */
+	private Map<Integer, String> customheaderfields = new HashMap<>();
 	
 	/**
 	 * List of municipality ids, when import file contains only references to municipalities
@@ -124,7 +129,11 @@ public class CsvImportparameter {
 			return true;
 	}
 
-	
+
+	public Map<Integer, String> getCustomHeaderfields() {
+		return this.customheaderfields;
+	}
+
 	public String getFieldSeparator() {
 		return fieldseparator;
 	}
@@ -209,8 +218,11 @@ public class CsvImportparameter {
 	public void setHeaderfield(HEADERFIELD field, int column) {
 		this.headerfields.put(field, column);
 	}
-	
-	
+
+	public void setCustomHeaderfield(String osmKey, int column) {
+		this.customheaderfields.put(column, osmKey);
+	}
+
 	/**
 	 * @param municipalityIDList the municipalityIDList to set
 	 */

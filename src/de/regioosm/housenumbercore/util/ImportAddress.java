@@ -1,5 +1,7 @@
 package de.regioosm.housenumbercore.util;
 
+import java.util.List;
+
 import de.regioosm.housenumbercore.util.Address;
 
 public class ImportAddress extends Address {
@@ -11,7 +13,7 @@ public class ImportAddress extends Address {
 	protected String note = null;
 	private Long streetDBId = 0L;
 
-	public OSMTagList osmtags = new OSMTagList();
+	private OSMTagList osmtags = new OSMTagList();
 	
 	public ImportAddress() {
 		super();
@@ -88,6 +90,14 @@ public class ImportAddress extends Address {
 	public Long getStreetDBId() {
 		return this.streetDBId;
 	}
+
+	public OSMTagList getOSMTagList() {
+		return this.osmtags;
+	}
+	
+	public OSMTag getOSMTag( String osmkey ) {
+		return osmtags.getTag(osmkey);
+	}
 	
 	public void setAdminHierarchy(String adminhierarchy) {
 		this.adminHierarchy = adminhierarchy;
@@ -131,6 +141,10 @@ public class ImportAddress extends Address {
 	@Override
 	public void setCoordinatesSourceText(String coordinatesourcetext) {
 		this.coordinatesourcetext = coordinatesourcetext;
+	}
+
+	public void setOSMTag( String osmkey, String osmvalue ) {
+		osmtags.add(osmkey,  osmvalue);
 	}
 	
 	@Override

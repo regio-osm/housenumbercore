@@ -340,6 +340,20 @@ public class CsvListImport {
 					argsCopy[argsi] = null;
 					argsCopy[argsi+1] = null;
 					argsOkCount += 2;
+				} else if (args[argsi].equals("-cf")) {
+					String argvalue = args[argsi + 1].toLowerCase();
+					if((argvalue.length() >= 2) && (argvalue.indexOf("=") != -1)) {
+						int columnNo = Integer.parseInt(argvalue.substring(0, argvalue.indexOf("=")));
+						String osmKey = argvalue.substring(argvalue.indexOf("=") + 1);
+						importparameter.setCustomHeaderfield(osmKey, columnNo - 1);
+					} else {
+						System.out.println("invalid parameter value -cf '" + argvalue + 
+							"', missing destination osm key. Syntax must be columnno>osmkey");
+						return;
+					}
+					argsCopy[argsi] = null;
+					argsCopy[argsi+1] = null;
+					argsOkCount += 2;
 				} else {
 					System.out.println("unknown program parameter '" + args[argsi] + "===");
 				}
