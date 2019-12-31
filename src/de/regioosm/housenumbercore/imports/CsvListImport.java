@@ -409,7 +409,13 @@ public class CsvListImport {
 					// municipality ref => municipality name is available, read it now
 				if(!parameterMunicipalityIdListfilename.equals("")) {
 					String municipalityIdlistfilename = configuration.application_datadir + "/" + parameterMunicipalityIdListfilename;
-					BufferedReader municipalityIdlistfilereader = new BufferedReader(new FileReader(municipalityIdlistfilename));
+					BufferedReader municipalityIdlistfilereader = null;
+					try {
+						municipalityIdlistfilereader = new BufferedReader(new FileReader(municipalityIdlistfilename));
+				    } catch (FileNotFoundException e) {
+				    	System.out.println("ERROR: Municipality-ID File not found: " + municipalityIdlistfilename);
+				    	return;
+				    }
 					String municipalityIdlistline = "";
 					Integer filelineno = 0;
 					while ((municipalityIdlistline = municipalityIdlistfilereader.readLine()) != null) {
@@ -434,7 +440,13 @@ public class CsvListImport {
 					// municipality subarea ref => municipality subarea name is available, read it now
 				if(!parameterSubMunicipalityIdListfilename.equals("")) {
 					String submunicipalityIdlistfilename = configuration.application_datadir + "/" + parameterSubMunicipalityIdListfilename;
-					BufferedReader submunicipalityIdlistfilereader = new BufferedReader(new FileReader(submunicipalityIdlistfilename));
+					BufferedReader submunicipalityIdlistfilereader = null;
+					try {
+						submunicipalityIdlistfilereader = new BufferedReader(new FileReader(submunicipalityIdlistfilename));
+				    } catch (FileNotFoundException e) {
+				    	System.out.println("ERROR: Sub-Municipality-ID File not found: " + submunicipalityIdlistfilename);
+				    	return;
+				    }
 					String submunicipalityIdlistline = "";
 					Integer filelineno = 0;
 					while ((submunicipalityIdlistline = submunicipalityIdlistfilereader.readLine()) != null) {
@@ -461,7 +473,13 @@ public class CsvListImport {
 					// street ref => street name is available, read it now
 				if(!parameterStreetIdListfilename.equals("")) {
 					String streetidlistfilename = configuration.application_datadir + "/" + parameterStreetIdListfilename;
-					BufferedReader streetidlistfilereader = new BufferedReader(new FileReader(streetidlistfilename));
+					BufferedReader streetidlistfilereader = null;
+					try {
+						streetidlistfilereader = new BufferedReader(new FileReader(streetidlistfilename));
+				    } catch (FileNotFoundException e) {
+				    	System.out.println("ERROR: Street-ID File not found: " + streetidlistfilename);
+				    	return;
+				    }
 					String streetidlistline = "";
 					Integer filelineno = 0;
 					while ((streetidlistline = streetidlistfilereader.readLine()) != null) {
@@ -643,8 +661,6 @@ System.out.println("nachher getName ===" + municipality.getName() + "===, getref
 
 				}
 
-		    } catch (FileNotFoundException e) {
-		      e.printStackTrace();
 		    } catch (IOException e) {
 		      e.printStackTrace();
 		    }

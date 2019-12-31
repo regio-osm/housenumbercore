@@ -297,17 +297,22 @@ public class CsvReader {
 	}
 	
 	private boolean open() {
-		if(this.importparameter.getImportfile() == null)
+		if(this.importparameter.getImportfile() == null) {
+			System.out.println("ERROR: no housenumberlist File set, please use setImportfile(..). Cancel file reading");
 			return false;
+		}
 		File filehandle = new File(this.importparameter.getImportfile());
-		if(!filehandle.isFile() || !filehandle.canRead())
+		if(!filehandle.isFile() || !filehandle.canRead()) {
+	    	System.out.println("ERROR: housenumberlist File not found: " + this.importparameter.getImportfile());
 			return false;
+		}
 		
 		try {
 			this.filereader = new BufferedReader(new InputStreamReader(
 				new FileInputStream(this.importparameter.getImportfile()), 
 				this.importparameter.getImportfileFormat()));
 		} catch (FileNotFoundException e) {
+	    	System.out.println("ERROR: housenumberlist File not found: " + this.importparameter.getImportfile());
 			return false;
 		}
 		return true;
@@ -417,9 +422,12 @@ public class CsvReader {
 			else if (importparameter.getMunicipalityRef() != null )
 				address.setMunicipalityRef(importparameter.getMunicipalityRef());
 
-			if ( ( address.getMunicipality() == null ) && 
-				( importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)) != null) ) {
-				address.setMunicipality(importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)));
+			if ( address.getMunicipality() == null ) {
+				if ( importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)) != null) {
+					address.setMunicipality(importparameter.getMunicipalityIDListEntry(getFieldContent(line, HEADERFIELD.municipalityref)));
+				} else {
+					System.out.println("WARNING: there is no municipality for municipality-ID " + address.getMunicipalityId());
+				}
 			}
 
 			if (importparameter.convertStreetToUpperLower()) {
