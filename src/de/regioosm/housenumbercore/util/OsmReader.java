@@ -116,7 +116,7 @@ public class OsmReader {
 								}
 			        		}
 			        		if(extraosmkeys.contains(tag.getKey())) {
-			        			housenumber.osmtags.add(tag.getKey().trim(), tag.getValue().trim());
+			        			housenumber.getOSMTagList().add(tag.getKey().trim(), tag.getValue().trim());
 			        		}
 						}
 						System.out.println( "raw node with housenumber ===" + housenumber.getHousenumber() + 
@@ -193,7 +193,7 @@ public class OsmReader {
 			        		if(tag.getKey().equals("centroid_lat"))
 			        			housenumber.setLat(Double.parseDouble(tag.getValue()));
 			        		if(extraosmkeys.contains(tag.getKey())) {
-			        			housenumber.osmtags.add(tag.getKey().trim(), tag.getValue().trim());
+			        			housenumber.getOSMTagList().add(tag.getKey().trim(), tag.getValue().trim());
 			        		}
 		        		}
 						System.out.println( "raw way with housenumber ===" + housenumber.getHousenumber() + 
@@ -269,7 +269,7 @@ public class OsmReader {
 			        		if(tag.getKey().equals("centroid_lat"))
 			        			housenumber.setLat(Double.parseDouble(tag.getValue()));
 			        		if(extraosmkeys.contains(tag.getKey())) {
-			        			housenumber.osmtags.add(tag.getKey().trim(), tag.getValue().trim());
+			        			housenumber.getOSMTagList().add(tag.getKey().trim(), tag.getValue().trim());
 			        		}
 			        	}
 						System.out.println( "raw relation with housenumber ===" + housenumber.getHousenumber() + 

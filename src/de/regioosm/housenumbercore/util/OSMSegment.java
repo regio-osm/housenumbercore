@@ -73,5 +73,26 @@ public class OSMSegment {
 	public void setTags(List<OSMTag> tags) {
 		this.tags = tags;
 	}
+	
+	@Override
+	public String toString() {
+		String output = "";
+		output += "Tags: ";
+		for ( int i = 0; i < this.tags.size(); i++ ) {
+			if ( i > 0 )
+				output += ", ";
+			output += tags.get(i).getKey() + "=" + tags.get(i).getValue();
+		}
+		output += "\n";
+		output += "Geometry";
+		int outputlength = geometryWKT.length();
+		if ( outputlength > 255 ) {
+			outputlength = 255;
+			output += " (partly)";
+		}
+		output += ": " + geometryWKT.substring(0,outputlength);
+
+		return output;
+	}
 }
 	

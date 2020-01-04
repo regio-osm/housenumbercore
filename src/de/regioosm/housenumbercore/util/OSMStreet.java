@@ -107,7 +107,8 @@ public class OSMStreet extends Street implements Comparable {
 	public void addSegment(OSMSegment way) {
 		segments.add(way);
 		this.geometryIsDirty = true;
-		setStreetGeometryFromSegments();
+		// generate geometry, when neccessary, not after every new segment
+		//setStreetGeometryFromSegments();
 	}
 	
 	public void addSegment(OSMType type, long osmid, String geomWKT) {
