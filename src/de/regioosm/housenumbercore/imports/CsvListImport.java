@@ -639,14 +639,19 @@ System.out.println("nachher getName ===" + municipality.getName() + "===, getref
 							jobs.generateJob(newarea);
 							Map<Street, OSMStreet> osmstreets = jobs.getOSMStreets(newarea);
 							jobs.storeStreets(newarea, osmstreets);
-							List<MunicipalityArea> subareas = newarea.generateSuburbPolygons(municipality, true);
-							if(subareas != null) {
-								for(int subareaindex = 0; subareaindex < subareas.size(); subareaindex++) {
-									MunicipalityArea subarea = subareas.get(subareaindex);
-									System.out.println("Processing subarea: " + subarea.toString() + "===");
-									jobs.generateJob(subarea);
-									osmstreets = jobs.getOSMStreets(subarea);
-									jobs.storeStreets(subarea, osmstreets);
+//TODO within the next method, wrong subareas can be found
+//  therefor the admin_level of municipality should be defined and used within the sub-method to only find subareas
+//  with higher admin_level values
+							if ( parameterSubareaActive ) {
+								List<MunicipalityArea> subareas = newarea.generateSuburbPolygons(municipality, true);
+								if(subareas != null) {
+									for(int subareaindex = 0; subareaindex < subareas.size(); subareaindex++) {
+										MunicipalityArea subarea = subareas.get(subareaindex);
+										System.out.println("Processing subarea: " + subarea.toString() + "===");
+										jobs.generateJob(subarea);
+										osmstreets = jobs.getOSMStreets(subarea);
+										jobs.storeStreets(subarea, osmstreets);
+									}
 								}
 							}
 						} else {

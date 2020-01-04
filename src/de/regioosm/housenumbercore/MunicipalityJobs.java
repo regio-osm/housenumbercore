@@ -576,6 +576,14 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 				osmresultcontent.append(inputline + "\n");
 			}
 			dis.close();
+
+				// check, if file has xml content. If not, stop further processing
+			String first100bytes = osmresultcontent.toString().substring(0, 100);
+			if ( first100bytes.indexOf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>") == -1) {
+				logger.log(Level.WARNING, "osm result file doesn't start with xml header line, will be ignored");
+				logger.log(Level.WARNING," (cont) Content is ===" + osmresultcontent + "===");
+				return null;
+			}
 			
 				// first, save upload data as local file, just for checking or for history
 			DateFormat timeformatterUSlong = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
