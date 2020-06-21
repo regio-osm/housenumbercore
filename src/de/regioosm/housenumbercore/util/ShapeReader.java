@@ -22,9 +22,7 @@ package de.regioosm.housenumbercore.util;
 		 
 */
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.io.BufferedWriter;
@@ -45,15 +43,14 @@ import org.geotools.data.FeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
-import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.PropertyType;
-import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
+import org.opengis.geometry.DirectPosition;
+import org.opengis.geometry.Geometry;
 
-import com.vividsolutions.jts.geom.Point;
 
 import de.regioosm.housenumbercore.util.ShapeImportparameter.HEADERFIELD;
 
@@ -345,14 +342,11 @@ if ((looper > 5) || ((nachher.getTime() - vorher.getTime())/1000 > 5))
     				*/
             	}
 
-            	Point point = (Point) addressFeature.getDefaultGeometry();
-            	if(point != null) {
-					address.setLon(point.getX());
-					address.setLat(point.getY());
-            	} else {
-            		//System.out.println("address without lon/lat");
+            	Geometry geometry = (Geometry) addressFeature.getDefaultGeometry();
+            	DirectPosition centroidpos = geometry.getCentroid();
+            	address.setLon(centroidpos.getOrdinate(0));
+            	address.setLat(centroidpos.getOrdinate(1));
             	}
-        	}
 
         	//TODO find out change of municipality (assuming, that input file is sorted by municipalities) and store after each municipality
 //			alternatively, make an array of municipalities to hold all togehter in memory during import read process
