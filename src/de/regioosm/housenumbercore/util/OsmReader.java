@@ -43,12 +43,12 @@ public class OsmReader {
 
 	
 	public Map<Municipality, HousenumberList> execute() {
-		Map<Municipality, HousenumberList> lists = new HashMap<>();
+		final Map<Municipality, HousenumberList> lists = new HashMap<>();
 	
 	
-		Map<Long, Node> gibmirnodes = new HashMap<Long, Node>();
-		Map<Long, Way> gibmirways = new HashMap<Long, Way>();
-		Map<Long, Relation> gibmirrelations = new HashMap<Long, Relation>();
+		final Map<Long, Node> gibmirnodes = new HashMap<Long, Node>();
+		final Map<Long, Way> gibmirways = new HashMap<Long, Way>();
+		final Map<Long, Relation> gibmirrelations = new HashMap<Long, Relation>();
 
 	
 		

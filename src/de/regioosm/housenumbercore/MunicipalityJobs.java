@@ -586,7 +586,7 @@ System.out.println("ERROR: invalid Geometry at osm relation id # " + muniarea.ge
 			}
 			
 				// first, save upload data as local file, just for checking or for history
-			DateFormat timeformatterUSlong = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+			final DateFormat timeformatterUSlong = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 			timeformatterUSlong.setTimeZone(TimeZone.getTimeZone("UTC"));
 			DateFormat time_formatter = new SimpleDateFormat("yyyyMMdd-HHmmss'Z'");
 			DateFormat germanyformatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
