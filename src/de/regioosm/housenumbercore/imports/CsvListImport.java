@@ -29,6 +29,10 @@ import de.regioosm.housenumbercore.util.Municipality;
 import de.regioosm.housenumbercore.util.OSMStreet;
 import de.regioosm.housenumbercore.util.Street;
 
+/*
+ * ad-hoc searching for jobs, which are not complete, and so don't work
+ * \copy (select '-land "' || land || '" -stadt "' || stadt || '"'  from jobs_strassen as js right join stadt as s on js.stadt_id = s.id join land as l on s.land_id = l.id  where js.strasse_id is null order by l.land, s.stadt ) to 'extrajobs.txt' encoding 'UTF-8';
+ */
 
 /**
  * Import or update of a housenumber list from a municipality.
