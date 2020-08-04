@@ -1,8 +1,22 @@
 #!/bin/bash
-cd /home/osm/apps/housenumbercore/data/Deutschland/Nordrhein-Westfalen/Gesamt/
-mkdir 2019-07
-cd 2019-07/
-wget https://www.opengeodata.nrw.de/produkte/geobasis/lika/alkis_sek/gebref/gebref_EPSG4647_ASCII.zip
+
+# dynamic variables, please check and set for every download
+CONTENTDATE="2020-01-01"  #Date in form yyyy-mm-dd
+FILEDOWNLOADDATE="2020-06-21"  #Date in form yyyy-mm-dd
+DOWNLOADFILE="https://www.opengeodata.nrw.de/produkte/geobasis/lk/gebref_txt/gebref_EPSG4647_ASCII.zip"
+
+
+DATAROOT="/home/osm/apps/housenumbercore/data"
+AREADIRNAME="Deutschland/Nordrhein-Westfalen/Gesamt"
+TODAYDIRNAME=`date +%Y%m%d`
+
+
+echo "Datum als Variable ===${TODAYDIRNAME}==="
+
+cd "${DATAROOT}/${AREADIRNAME}"
+mkdir "${TODAYDIRNAME}"
+cd "${TODAYDIRNAME}/"
+wget "${DOWNLOADFILE}" -O ./gebref_EPSG4647_ASCII.zip
 unzip gebref_EPSG4647_ASCII.zip
 
 
@@ -11,11 +25,12 @@ unzip gebref_EPSG4647_ASCII.zip
 gawk 'BEGIN { 
 	FS=";"; 
 	OFS="\t"; 
+   RS="\r\n";
 	print "GKZ\tGEMEINDENAME"; }
 /^G/ {
 	$1 = gensub(/^\xEF\xBB\xBF(.*)/, "\\1", "g", $1)
 	printf("%s%s%s%s\t%s\n",$2,$3,$4,$5,$6)
-}' gebref_schluessel.txt > DE_NW_gebref_schluessel_20191231.txt
+}' gebref_schluessel.txt > DE_NW_gebref_schluessel.txt
 
 
 
@@ -45,11 +60,20 @@ gawk 'BEGIN {
 
 		# only export addresses of category A or B. Category C are POIs with artifical addresses, not visible on ground
 	if ( $3 == "A" || $3 == "B" ) printf("%s\t%s\t%s\t%s%s%s%s\t%s\t%s%s\t%s\t%s\t%s\n",$1,$2,$3,$4,$5,$6,$7,$9,$10,$11,$12,$13,$14)
-}' gebref_temp.txt > DE_NW_gebref_20191231.txt
+}' gebref_temp.txt > DE_NW_gebref_${TODAYDIRNAME}.txt
 
 
 cd /home/osm/apps/housenumbercore/src/
 
-java de.regioosm.housenumbercore.imports.CsvListImport -coordinatesystem 25832 -country "Bundesrepublik Deutschland" -file "/home/osm/apps/housenumbercore/data/Deutschland/Nordrhein-Westfalen/Gesamt/2019-07/DE_NW_gebref_20191231.txt" -filecharset UTF-8 -municipalityidfile "Deutschland/Nordrhein-Westfalen/Gesamt/2019-07/DE_NW_gebref_schluessel_20191231.txt" -copyright "© Land NRW (2019)" -useage "Datenlizenz Deutschland - Namensnennung - Version 2.0 (<a href='http://www.govdata.de/dl-de/by-2-0'>www.govdata.de/dl-de/by-2-0</a>)" -listurl "https://www.opengeodata.nrw.de/produkte/geobasis/lika/alkis_sek/gebref/" -listcontenttimestamp 2019-07-01 -listfiletimestamp 2019-11-05 -useoverpass yes -coordinatesosmimportable no -subareaactive no -c 4=municipalityref -c 6=housenumber -c 7=lon -c 8=lat -c 9=street >Import_DE_NW.log
+java de.regioosm.housenumbercore.imports.CsvListImport \
+-coordinatesystem 25832 -country "Bundesrepublik Deutschland" \
+-file "${DATAROOT}/${AREADIRNAME}/${TODAYDIRNAME}/DE_NW_gebref_${TODAYDIRNAME}.txt" -filecharset UTF-8 \
+-municipalityidfile "${AREADIRNAME}/${TODAYDIRNAME}/DE_NW_gebref_schluessel.txt" \
+-copyright "© Land NRW (2020)" \
+-useage "Datenlizenz Deutschland – Zero (<a href='https://www.govdata.de/dl-de/zero-2-0'>dl-de/zero-2-0</a>)" \
+-listurl "https://www.bezreg-koeln.nrw.de/brk_internet/geobasis/liegenschaftskataster/gebaeudereferenzen/index.html" \
+-listcontenttimestamp "${CONTENTDATE}" -listfiletimestamp "${FILEDOWNLOADDATE}" \
+-useoverpass yes -coordinatesosmimportable yes -subareaactive no \
+-c 4=municipalityref -c 6=housenumber -c 7=lon -c 8=lat -c 9=street >Import_DE_NW_${TODAYDIRNAME}.log
 
-#psql -d hausnummern -U okilimu -c "update stadt set parameters = hstore(ARRAY['listcoordforevaluation','yes', 'listcoordosmuploadable','no']) where stadt = 'Leonberg' and officialkeys_id = '08115028' and land_id = (select id from land where land = 'Bundesrepublik Deutschland')"
+#psql -d hausnummern -U okilimu -c "update stadt set parameters = hstore(ARRAY['listcoordforevaluation','yes', 'listcoordosmuploadable','yes']) where stadt = 'Düsseldorf' and officialkeys_id = '05111000' and land_id = (select id from land where land = 'Bundesrepublik Deutschland')"
